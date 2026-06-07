@@ -1,119 +1,235 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Business Ledger Pro</title>
-    <link rel="stylesheet" href="style.css">
+    <title>StripeLedger Business Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+        html[data-theme="light"] {
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --text-color: #1e293b;
+        }
+        html[data-theme="dark"] {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+            --card-bg: rgba(15, 23, 42, 0.6);
+            --text-color: #f8fafc;
+        }
+        body { background: var(--bg-gradient); color: var(--text-color); transition: all 0.3s ease; }
+        @media print { .no-print { display: none !important; } .print-area { width: 100%; } }
+    </style>
 </head>
-<body>
-    <div id="login-screen" class="screen">
-        <div class="login-box">
-            <h2>Ledger Login</h2>
-            <input type="text" id="username" placeholder="Username (admin)">
-            <input type="password" id="password" placeholder="Password (password123)">
-            <button onclick="login()">Login</button>
-            <p id="login-error" style="color: red; display: none;">Invalid credentials</p>
+<body class="min-h-screen font-sans antialiased">
+
+    <div id="toast-box" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xl">
+        <div class="w-full max-w-md p-8 rounded-2xl glass bg-slate-900/50 shadow-2xl border border-slate-800">
+            <div class="flex justify-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 text-3xl font-extrabold tracking-tight">
+                <i class="fa-solid fa-cube mr-2 self-center"></i> CORE LEDGER
+            </div>
+            <div class="space-y-4">
+                <input type="text" id="username" placeholder="Username" class="w-full px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-lg text-white focus:outline-none focus:border-purple-500 transition">
+                <input type="password" id="password" placeholder="Password" class="w-full px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-lg text-white focus:outline-none focus:border-purple-500 transition">
+                <button onclick="login()" class="w-full py-3 mt-2 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 text-white rounded-lg font-semibold shadow-lg hover:opacity-90 transition">Initialize Console</button>
+            </div>
         </div>
     </div>
 
-    <div id="app-screen" class="screen" style="display: none;">
-        <nav class="sidebar no-print">
-            <h2>Ledger Pro</h2>
-            <ul class="nav-links">
-                <li onclick="showSection('dashboard')">Dashboard</li>
-                <li onclick="showSection('customers')">Customers</li>
-                <li onclick="showSection('transactions')">Transactions</li>
-                <li onclick="showSection('payments')">Record Payment</li>
-                <li onclick="showSection('ledger')">Customer Ledger</li>
-                <li onclick="showSection('reports')">Pending Dues</li>
-                <hr>
-                <li onclick="window.print()">Print / PDF Export</li>
-                <li onclick="exportCSV()">Export Data to CSV</li>
-                <li onclick="logout()" style="margin-top: auto; color: #ff6b6b;">Logout</li>
-            </ul>
-        </nav>
+    <div id="app-screen" class="flex flex-col md:flex-row min-h-screen" style="display: none;">
+        <aside class="w-full md:w-64 glass bg-slate-950/40 p-6 flex flex-col gap-6 no-print border-r border-slate-800/40">
+            <div class="flex items-center justify-between">
+                <span class="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400">LEOPARD OS</span>
+                <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-white/5 transition"><i class="fa-solid fa-circle-half-stroke text-purple-400"></i></button>
+            </div>
+            <nav class="flex flex-col gap-1 space-y-1 flex-grow">
+                <button onclick="nav('dashboard')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-chart-pie w-5 text-blue-400"></i> Analytics</button>
+                <button onclick="nav('customers')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-user-group w-5 text-purple-400"></i> Customers</button>
+                <button onclick="nav('inventory')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-boxes-stacked w-5 text-emerald-400"></i> Stock Control</button>
+                <button onclick="nav('transactions')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-file-invoice-dollar w-5 text-amber-400"></i> Invoices</button>
+                <button onclick="nav('expenses')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-wallet w-5 text-rose-400"></i> Expenses</button>
+            </nav>
+            <button onclick="logout()" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-rose-500/10 text-rose-400 font-medium transition text-left"><i class="fa-solid fa-power-off w-5"></i> Terminate Session</button>
+        </aside>
 
-        <main class="content">
-            <section id="dashboard" class="view-section">
-                <h1>Dashboard Summary</h1>
-                <div class="cards">
-                    <div class="card"><h3>Total Sales</h3><h2 id="dash-sales">₹0.00</h2></div>
-                    <div class="card"><h3>Total Received</h3><h2 id="dash-received" style="color: #06d6a0;">₹0.00</h2></div>
-                    <div class="card"><h3>Pending Balance</h3><h2 id="dash-pending" style="color: #ef476f;">₹0.00</h2></div>
+        <main class="flex-grow p-6 md:p-10 overflow-x-hidden print-area">
+            
+            <section id="view-dashboard" class="space-y-8 stage">
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight">Financial Overview</h1>
+                    <p class="text-sm opacity-60">Real-time trading performance & margin status</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="glass p-6 rounded-2xl bg-gradient-to-br from-blue-500/10 to-transparent">
+                        <div class="flex justify-between items-center opacity-60 text-sm mb-2">Gross Turnover <i class="fa-solid fa-arrow-trend-up text-blue-400"></i></div>
+                        <div class="text-2xl font-black tracking-tight" id="m-sales">₹0.00</div>
+                    </div>
+                    <div class="glass p-6 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-transparent">
+                        <div class="flex justify-between items-center opacity-60 text-sm mb-2">Net Income/Profit <i class="fa-solid fa-coins text-emerald-400"></i></div>
+                        <div class="text-2xl font-black tracking-tight" id="m-profit">₹0.00</div>
+                    </div>
+                    <div class="glass p-6 rounded-2xl bg-gradient-to-br from-rose-500/10 to-transparent">
+                        <div class="flex justify-between items-center opacity-60 text-sm mb-2">Receivables Due <i class="fa-solid fa-clock-column text-rose-400"></i></div>
+                        <div class="text-2xl font-black tracking-tight text-rose-400" id="m-pending">₹0.00</div>
+                    </div>
+                    <div class="glass p-6 rounded-2xl bg-gradient-to-br from-purple-500/10 to-transparent">
+                        <div class="flex justify-between items-center opacity-60 text-sm mb-2">Active Accounts <i class="fa-solid fa-users text-purple-400"></i></div>
+                        <div class="text-2xl font-black tracking-tight" id="m-customers">0</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="glass p-6 rounded-2xl bg-slate-900/20"><h3 class="mb-4 font-bold opacity-80">Monthly Performance Scaling</h3><canvas id="chart-sales"></canvas></div>
+                    <div class="glass p-6 rounded-2xl bg-slate-900/20"><h3 class="mb-4 font-bold opacity-80">Top Outstanding Receivables</h3><canvas id="chart-dues"></canvas></div>
                 </div>
             </section>
 
-            <section id="customers" class="view-section" style="display: none;">
-                <h1>Customer Management</h1>
-                <div class="form-card no-print">
-                    <input type="hidden" id="cust-id">
-                    <input type="text" id="cust-name" placeholder="Name">
-                    <input type="text" id="cust-phone" placeholder="Phone">
-                    <input type="text" id="cust-address" placeholder="Address">
-                    <input type="text" id="cust-notes" placeholder="Notes (Optional)">
-                    <button onclick="saveCustomer()" id="cust-btn">Save Customer</button>
-                    <button onclick="resetCustomerForm()" style="background: #ccc; color:#333;">Clear</button>
+            <section id="view-customers" class="space-y-6 stage hidden">
+                <div class="glass p-6 rounded-2xl space-y-4 no-print">
+                    <h3 class="text-lg font-bold">Onboard New Customer Account</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input type="text" id="c-name" placeholder="Legal Name" class="bg-black/20 border border-white/10 rounded-lg p-2.5 focus:outline-none focus:border-purple-500 text-white">
+                        <input type="text" id="c-phone" placeholder="Phone Number" class="bg-black/20 border border-white/10 rounded-lg p-2.5 focus:outline-none focus:border-purple-500 text-white">
+                        <input type="text" id="c-address" placeholder="Physical Address" class="bg-black/20 border border-white/10 rounded-lg p-2.5 focus:outline-none focus:border-purple-500 text-white">
+                    </div>
+                    <textarea id="c-notes" placeholder="Internal Business Notes..." class="w-full bg-black/20 border border-white/10 rounded-lg p-2.5 h-20 focus:outline-none focus:border-purple-500 text-white"></textarea>
+                    <button onclick="addCustomer()" class="px-6 py-2.5 bg-purple-600 rounded-lg text-white font-medium hover:bg-purple-700 transition">Save Customer Profile</button>
                 </div>
-                <input type="text" id="search-cust" class="search-bar no-print" placeholder="Search customers..." onkeyup="filterTable('customers-table', 'search-cust')">
-                <table id="customers-table">
-                    <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Address</th><th>Notes</th><th class="no-print">Actions</th></tr></thead>
-                    <tbody></tbody>
+
+                <div class="flex justify-between items-center gap-4 no-print">
+                    <input type="text" id="search-cust" placeholder="Search profiles dynamically..." onkeyup="filterTable('table-cust', 'search-cust')" class="glass px-4 py-2 rounded-xl text-sm w-full max-w-xs focus:outline-none focus:border-purple-500">
+                    <button onclick="exportTableToCSV('table-cust', 'customer-directory')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold transition">Export CSV</button>
+                </div>
+
+                <table id="table-cust" class="w-full rounded-2xl overflow-hidden glass text-left">
+                    <thead class="bg-white/5 text-xs font-bold tracking-wider uppercase opacity-80">
+                        <tr><th class="p-4">Account ID</th><th class="p-4">Client Name</th><th class="p-4">Contact</th><th class="p-4">Location</th><th class="p-4 no-print">Actions</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5 text-sm"></tbody>
                 </table>
             </section>
 
-            <section id="transactions" class="view-section" style="display: none;">
-                <h1>Transactions</h1>
-                <div class="form-card no-print">
-                    <select id="tx-customer" class="cust-dropdown"></select>
-                    <input type="date" id="tx-date">
-                    <input type="text" id="tx-desc" placeholder="Product/Service Description">
-                    <input type="number" id="tx-qty" placeholder="Quantity" oninput="calcTotal()">
-                    <input type="number" id="tx-rate" placeholder="Rate" oninput="calcTotal()">
-                    <input type="number" id="tx-gst" placeholder="GST Amt" oninput="calcTotal()">
-                    <input type="number" id="tx-cess" placeholder="Cess Amt" oninput="calcTotal()">
-                    <div class="calc-box">Total: ₹<span id="tx-grand">0.00</span></div>
-                    <button onclick="addTransaction()">Record Invoice</button>
+            <section id="view-inventory" class="space-y-6 stage hidden">
+                <div class="glass p-6 rounded-2xl space-y-4 no-print">
+                    <h3 class="text-lg font-bold">Inbound New Inventory Items</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                        <input type="text" id="i-name" placeholder="Product Title" class="bg-black/20 border border-white/10 rounded-lg p-2 text-white">
+                        <input type="text" id="i-sku" placeholder="SKU / Barcode" class="bg-black/20 border border-white/10 rounded-lg p-2 text-white">
+                        <input type="number" id="i-qty" placeholder="Inbound Qty" class="bg-black/20 border border-white/10 rounded-lg p-2 text-white">
+                        <input type="number" id="i-min" placeholder="Alert Limit" class="bg-black/20 border border-white/10 rounded-lg p-2 text-white">
+                        <input type="number" id="i-cost" placeholder="Cost (₹)" class="bg-black/20 border border-white/10 rounded-lg p-2 text-white">
+                        <input type="number" id="i-sell" placeholder="Retail (₹)" class="bg-black/20 border border-white/10 rounded-lg p-2 text-white">
+                    </div>
+                    <button onclick="addInventory()" class="px-6 py-2.5 bg-emerald-600 rounded-lg text-white font-medium hover:bg-emerald-700 transition">Register Asset Stock</button>
                 </div>
-                <input type="text" id="search-tx" class="search-bar no-print" placeholder="Search invoices..." onkeyup="filterTable('transactions-table', 'search-tx')">
-                <table id="transactions-table">
-                    <thead><tr><th>ID</th><th>Date</th><th>Customer</th><th>Desc</th><th>Total</th></tr></thead>
-                    <tbody></tbody>
+
+                <table id="table-inv" class="w-full rounded-2xl overflow-hidden glass text-left">
+                    <thead class="bg-white/5 text-xs uppercase opacity-80">
+                        <tr><th class="p-4">Product Unit</th><th class="p-4">SKU Code</th><th class="p-4">Available Stock</th><th class="p-4">Cost Value</th><th class="p-4">Base Retail</th><th class="p-4">Status</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5 text-sm"></tbody>
                 </table>
             </section>
 
-            <section id="payments" class="view-section" style="display: none;">
-                <h1>Record Payment Received</h1>
-                <div class="form-card no-print">
-                    <select id="pay-customer" class="cust-dropdown"></select>
-                    <input type="date" id="pay-date">
-                    <input type="number" id="pay-amount" placeholder="Amount Received (₹)">
-                    <button onclick="addPayment()">Record Payment</button>
+            <section id="view-transactions" class="space-y-6 stage hidden">
+                <div class="glass p-6 rounded-2xl space-y-4 no-print">
+                    <h3 class="text-lg font-bold">Generate Outbound Commercial Invoice</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <select id="tx-cust-sel" class="bg-slate-900 border border-white/10 rounded-lg p-2.5 text-white"></select>
+                        <select id="tx-inv-sel" onchange="autoFillPrice()" class="bg-slate-900 border border-white/10 rounded-lg p-2.5 text-white"></select>
+                        <input type="date" id="tx-date" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
+                        <input type="number" id="tx-qty-input" placeholder="Quantity Ordered" oninput="runTaxEngine()" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <input type="number" id="tx-rate-input" placeholder="Unit Rate Override" oninput="runTaxEngine()" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
+                        <input type="number" id="tx-disc-input" placeholder="Total Cash Discount (₹)" oninput="runTaxEngine()" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
+                        <input type="number" id="tx-gst-input" placeholder="Integrated GST (₹)" oninput="runTaxEngine()" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
+                        <input type="number" id="tx-cess-input" placeholder="Additional Cess (₹)" oninput="runTaxEngine()" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
+                    </div>
+                    <div class="flex justify-between items-center pt-2">
+                        <div class="text-lg font-bold">Computed Grand Total: <span class="text-cyan-400" id="tx-aggregate-lbl">₹0.00</span></div>
+                        <button onclick="commitTransaction()" class="px-6 py-2.5 bg-blue-600 rounded-lg text-white font-medium hover:bg-blue-700 transition">Execute & Print Transaction</button>
+                    </div>
                 </div>
-            </section>
 
-            <section id="ledger" class="view-section" style="display: none;">
-                <h1>Detailed Customer Ledger</h1>
-                <div class="form-card no-print">
-                    <select id="ledger-customer" class="cust-dropdown"></select>
-                    <button onclick="generateLedger()">Generate Ledger</button>
-                </div>
-                <h3 id="ledger-title" style="margin: 1rem 0;"></h3>
-                <table id="ledger-table">
-                    <thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Debit (₹)</th><th>Credit (₹)</th><th>Balance (₹)</th></tr></thead>
-                    <tbody></tbody>
+                <table id="table-tx" class="w-full rounded-2xl overflow-hidden glass text-left">
+                    <thead class="bg-white/5 text-xs uppercase opacity-80">
+                        <tr><th class="p-4">Date</th><th class="p-4">Purchaser</th><th class="p-4">Item details</th><th class="p-4">Invoice Value</th><th class="p-4">Yield Margin</th><th class="p-4 no-print">Control</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5 text-sm"></tbody>
                 </table>
             </section>
 
-            <section id="reports" class="view-section" style="display: none;">
-                <h1>Pending Dues Report</h1>
-                <table id="dues-table">
-                    <thead><tr><th>Customer Name</th><th>Phone</th><th>Total Billed</th><th>Total Paid</th><th>Outstanding Balance</th></tr></thead>
-                    <tbody></tbody>
+            <section id="view-expenses" class="space-y-6 stage hidden">
+                <div class="glass p-6 rounded-2xl space-y-4 no-print">
+                    <h3 class="text-lg font-bold">Record Operational Expenses</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <input type="text" id="e-title" placeholder="Expense Voucher Name" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
+                        <select id="e-cat" class="bg-slate-900 border border-white/10 rounded-lg p-2.5 text-white">
+                            <option value="Logistics">Logistics & Supply</option>
+                            <option value="Rent">Facilities & Rent</option>
+                            <option value="Salaries">Staff Salaries</option>
+                            <option value="Utilities">Utilities & Energy</option>
+                        </select>
+                        <input type="number" id="e-amt" placeholder="Value Amount (₹)" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
+                        <input type="date" id="e-date" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
+                    </div>
+                    <button onclick="addExpense()" class="px-6 py-2.5 bg-rose-600 rounded-lg text-white font-medium hover:bg-rose-700 transition">Authorize Fund Release</button>
+                </div>
+
+                <table id="table-exp" class="w-full rounded-2xl overflow-hidden glass text-left">
+                    <thead class="bg-white/5 text-xs uppercase opacity-80">
+                        <tr><th class="p-4">Date Issued</th><th class="p-4">Voucher Title</th><th class="p-4">Operational Sector</th><th class="p-4">Financial Amount</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5 text-sm"></tbody>
                 </table>
             </section>
+
+            <section id="view-ledger-panel" class="space-y-6 stage hidden">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-black" id="ledger-title-header">Account Ledger History</h2>
+                    <button onclick="nav('customers')" class="px-4 py-2 bg-white/5 rounded-xl text-xs no-print hover:bg-white/10">Return to Directory</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 no-print">
+                    <div class="glass p-6 rounded-2xl space-y-3">
+                        <h4 class="font-bold text-sm">Post Inbound Payment Credit</h4>
+                        <input type="number" id="ledger-pay-amt" placeholder="Amount (₹)" class="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white">
+                        <select id="ledger-pay-method" class="w-full bg-slate-900 border border-white/10 rounded-lg p-2 text-white">
+                            <option value="Bank Transfer">RTGS / Bank Wire</option>
+                            <option value="UPI">Instant UPI</option>
+                            <option value="Cash">Physical Cash</option>
+                        </select>
+                        <button onclick="submitLedgerPayment()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-xs transition">Confirm Collection</button>
+                    </div>
+                    <div class="glass p-6 rounded-2xl flex flex-col justify-between">
+                        <span class="text-xs opacity-60 uppercase font-bold tracking-wider">Quick Actions</span>
+                        <div class="flex flex-col gap-2">
+                            <a id="wa-link" target="_blank" class="w-full py-3 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-xl text-center font-bold text-sm transition"><i class="fa-brands fa-whatsapp mr-1"></i> Send Reminders</a>
+                            <button onclick="window.print()" class="w-full py-3 bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white rounded-xl font-bold text-sm transition"><i class="fa-solid fa-print mr-1"></i> Print / Save PDF Statement</button>
+                        </div>
+                    </div>
+                </div>
+
+                <table id="table-ledger" class="w-full rounded-2xl overflow-hidden glass text-left">
+                    <thead class="bg-white/5 text-xs uppercase opacity-80">
+                        <tr><th class="p-4">Date</th><th class="p-4">Classification</th><th class="p-4">Operational Log Details</th><th class="p-4">Debit (Charges)</th><th class="p-4">Credit (Receipts)</th><th class="p-4">Running Liability Balance</th></tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5 text-sm"></tbody>
+                </table>
+            </section>
+
         </main>
     </div>
+
     <script src="app.js"></script>
 </body>
 </html>
