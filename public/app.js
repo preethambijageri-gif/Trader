@@ -5,17 +5,32 @@ let globalInventoryRegistry = [];
 let localUserSessionContext = { username: null, role: null };
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Gracefully handle initial auth checks
     checkAuthenticationState();
+    
+    // Set default dates for inputs
     const today = new Date().toISOString().split('T')[0];
     ['tx-date', 'tx-due-date', 'e-date'].forEach(id => {
         const input = document.getElementById(id);
         if (input) input.value = today;
+    });
+
+    // Add Enter key listener for seamless login execution
+    const loginFields = ['username', 'password'];
+    loginFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') login();
+            });
+        }
     });
 });
 
 // Front-End Interactive Toast Framework Node
 function launchToast(msg, type = 'info') {
     const box = document.getElementById('toast-box');
+    if (!box) return;
     const toast = document.createElement('div');
     toast.className = `glass px-5 py-3.5 rounded-xl text-xs font-bold text-white shadow-2xl flex items-center gap-3 border transition-all duration-300 transform translate-x-20 opacity-0`;
     
@@ -33,54 +48,85 @@ function launchToast(msg, type = 'info') {
     }, 4500);
 }
 
-// Security Session Interceptor Matrix
+// Security Session Interceptor Matrix with Defensive Error Catching
 async function checkAuthenticationState() {
-    const data = await (await fetch('/api/auth/check')).json();
-    if(data.authed) {
-        localUserSessionContext.username = data.username;
-        localUserSessionContext.role = data.role;
+    try {
+        const response = await fetch('/api/auth/check');
+        if (!response.ok) throw new Error("Server handshake rejected");
         
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('app-screen').style.display = 'flex';
-        
-        document.getElementById('user-display-name').innerText = data.username;
-        document.getElementById('user-display-role').innerText = `Role Context: ${data.role}`;
-        document.getElementById('user-badge').innerText = data.username.slice(0,2);
-        
-        // RBAC UI Element Management Modifiers
-        if(data.role !== 'Admin') {
-            document.getElementById('nav-audit-btn').style.display = 'none';
-            document.getElementById('admin-backup-btn').style.display = 'none';
-            document.getElementById('admin-restore-lbl').style.display = 'none';
+        const data = await response.json();
+        if (data.authed) {
+            localUserSessionContext.username = data.username;
+            localUserSessionContext.role = data.role;
+            
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'flex';
+            
+            document.getElementById('user-display-name').innerText = data.username;
+            document.getElementById('user-display-role').innerText = `Role Context: ${data.role}`;
+            document.getElementById('user-badge').innerText = data.username.slice(0,2);
+            
+            // RBAC UI Element Management Modifiers
+            if (data.role !== 'Admin') {
+                const auditBtn = document.getElementById('nav-audit-btn');
+                const backupBtn = document.getElementById('admin-backup-btn');
+                const restoreBtn = document.getElementById('admin-restore-lbl');
+                if (auditBtn) auditBtn.style.display = 'none';
+                if (backupBtn) backupBtn.style.display = 'none';
+                if (restoreBtn) restoreBtn.style.display = 'none';
+            }
+            nav('dashboard');
         }
-        nav('dashboard');
+    } catch (e) {
+        console.error("Initialization Connection Fault:", e);
+        launchToast("Offline Engine Mode: Ensure backend service port 3000 is running.", "error");
     }
 }
 
 async function login() {
+    const userEl = document.getElementById('username');
+    const passEl = document.getElementById('password');
+    if (!userEl || !passEl) return;
+
+    const username = userEl.value.trim();
+    const password = passEl.value.trim();
+
+    if (!username || !password) {
+        launchToast("Access Denied: Credentials fields cannot be empty.", "error");
+        return;
+    }
+
     try {
         const res = await fetch('/api/auth/login', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({username: document.getElementById('username').value, password: document.getElementById('password').value})
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ username, password })
         });
-        if(res.ok) {
+        
+        if (res.ok) {
             launchToast("Cryptographic Session Credentials Validated", "success");
-            checkAuthenticationState();
+            await checkAuthenticationState();
         } else {
-            launchToast("Authentication Error: Credentials Signature Invalid", "error");
+            const errData = await res.json().catch(() => ({}));
+            launchToast(errData.message || "Authentication Error: Credentials Signature Invalid", "error");
         }
-    } catch (e) { launchToast("Fatal transmission structural error.", "error"); }
+    } catch (e) { 
+        launchToast("Fatal connection failure. Is server.js running?", "error"); 
+    }
 }
 
 async function logout() {
-    await fetch('/api/auth/logout', {method: 'POST'});
+    try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+    } catch(e) {}
     location.reload();
 }
 
 // Workspace Structural Layout View Controller Switcher
 function nav(sectionId) {
     document.querySelectorAll('.stage').forEach(el => el.classList.add('hidden'));
-    document.getElementById(`view-${sectionId}`).classList.remove('hidden');
+    const targetStage = document.getElementById(`view-${sectionId}`);
+    if (targetStage) targetStage.classList.remove('hidden');
     
     if (sectionId === 'dashboard') loadAnalyticalDashboard();
     if (sectionId === 'customers') loadCustomerDirectory();
@@ -117,45 +163,49 @@ function triggerGlobalSearch() {
 
 // Dashboard Summary Computations Stream
 async function loadAnalyticalDashboard() {
-    const stats = await (await fetch('/api/analytics/summary')).json();
-    document.getElementById('db-today-sales').innerText = `₹${stats.todaySales.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-    document.getElementById('db-today-profit').innerText = `₹${stats.todayProfit.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-    document.getElementById('db-total-profit').innerText = `₹${stats.totalProfit.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-    document.getElementById('db-pending-dues').innerText = `₹${stats.pendingDues.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-    
-    document.getElementById('db-alert-stock').innerHTML = `<i class="fa-solid fa-box mr-1"></i> ${stats.lowStockCount} Shortage Warnings`;
-    document.getElementById('db-alert-overdue').innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${stats.overdueAccounts} Overdue Profiles`;
-    
-    renderAnalyticsCharts();
+    try {
+        const stats = await (await fetch('/api/analytics/summary')).json();
+        document.getElementById('db-today-sales').innerText = `₹${stats.todaySales.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        document.getElementById('db-today-profit').innerText = `₹${stats.todayProfit.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        document.getElementById('db-total-profit').innerText = `₹${stats.totalProfit.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        document.getElementById('db-pending-dues').innerText = `₹${stats.pendingDues.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        
+        document.getElementById('db-alert-stock').innerHTML = `<i class="fa-solid fa-box mr-1"></i> ${stats.lowStockCount} Shortage Warnings`;
+        document.getElementById('db-alert-overdue').innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${stats.overdueAccounts} Overdue Profiles`;
+        
+        renderAnalyticsCharts();
+    } catch (e) { console.error("Dashboard compute metrics error", e); }
 }
 
 async function renderAnalyticsCharts() {
-    const data = await (await fetch('/api/analytics/charts')).json();
-    const textThemeColor = document.documentElement.getAttribute('data-theme') === 'dark' ? '#f8fafc' : '#0f172a';
+    try {
+        const data = await (await fetch('/api/analytics/charts')).json();
+        const textThemeColor = document.documentElement.getAttribute('data-theme') === 'dark' ? '#f8fafc' : '#0f172a';
 
-    if (charts.sales) charts.sales.destroy();
-    if (charts.products) charts.products.destroy();
+        if (charts.sales) charts.sales.destroy();
+        if (charts.products) charts.products.destroy();
 
-    charts.sales = new Chart(document.getElementById('canvas-sales').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: data.txHistory.map(x => x.month),
-            datasets: [
-                { label: 'Gross Revenue Pipeline', data: data.txHistory.map(x => x.revenue), borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.05)', fill: true, tension: 0.35 },
-                { label: 'Net Operations Margins', data: data.txHistory.map(x => x.net_profit), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)', fill: true, tension: 0.35 }
-            ]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: textThemeColor, font: { weight: 'bold' } } } } }
-    });
+        charts.sales = new Chart(document.getElementById('canvas-sales').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: data.txHistory.map(x => x.month),
+                dataSets: [
+                    { label: 'Gross Revenue Pipeline', data: data.txHistory.map(x => x.revenue), borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.05)', fill: true, tension: 0.35 },
+                    { label: 'Net Operations Margins', data: data.txHistory.map(x => x.net_profit), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)', fill: true, tension: 0.35 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: textThemeColor, font: { weight: 'bold' } } } } }
+        });
 
-    charts.products = new Chart(document.getElementById('canvas-products').getContext('2d'), {
-        type: 'bar',
-        data: {
-            labels: data.leadingProducts.map(x => x.name),
-            datasets: [{ label: 'Operational Volume Units Sold', data: data.leadingProducts.map(x => x.volume), backgroundColor: '#a855f7', borderRadius: 6 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: textThemeColor, font: { weight: 'bold' } } } } }
-    });
+        charts.products = new Chart(document.getElementById('canvas-products').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: data.leadingProducts.map(x => x.name),
+                dataSets: [{ label: 'Operational Volume Units Sold', data: data.leadingProducts.map(x => x.volume), backgroundColor: '#a855f7', borderRadius: 6 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: textThemeColor, font: { weight: 'bold' } } } } }
+        });
+    } catch(e) {}
 }
 
 // CRM Layer Management Engine
@@ -335,38 +385,4 @@ async function loadInvoicesTable() {
 
 async function voidInvoice(id) {
     if(confirm("Confirm severe administrative action: Void transaction invoice? Base stock reserves will be re-credited into physical inventory storage mapping points.")) {
-        await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
-        loadInvoicesTable();
-    }
-}
-
-// Operating Expenses Controller Layer
-async function loadExpenseTable() {
-    const data = await (await fetch('/api/expenses')).json();
-    document.querySelector('#table-exp tbody').innerHTML = data.map(e => `
-        <tr class="hover:bg-white/5 transition border-b border-white/5">
-            <td class="p-4 font-mono text-xs opacity-60">${e.date}</td>
-            <td class="p-4 font-bold text-slate-200">${e.title}</td>
-            <td class="p-4"><span class="text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded bg-rose-500/10 text-rose-400 border border-rose-500/10">${e.category}</span></td>
-            <td class="p-4 text-rose-400 font-bold font-mono">-₹${e.amount.toFixed(2)}</td>
-        </tr>`).join('');
-}
-
-async function addExpense() {
-    const payload = {
-        title: document.getElementById('e-title').value, category: document.getElementById('e-cat').value,
-        amount: parseFloat(document.getElementById('e-amt').value) || 0, date: document.getElementById('e-date').value, notes: ''
-    };
-    if (!payload.title || !payload.amount) return launchToast("Aborted: Incomplete expense voucher entry data fields.", "error");
-    await fetch('/api/expenses', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-    launchToast("Operational capital expense recorded against margin parameters.", "info");
-    document.getElementById('e-title').value = '';
-    document.getElementById('e-amt').value = '';
-    loadExpenseTable();
-}
-
-// System Audit Streaming Matrix Logs 
-async function loadAuditLogsTable() {
-    const data = await (await fetch('/api/audit')).json();
-    document.querySelector('#table-audit tbody').innerHTML = data.map(a => `
-        <tr class="border-b border-white
+        await fetch(`/api/transactions/${id}`, { method: 'DELETE'
