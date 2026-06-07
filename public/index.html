@@ -3,233 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StripeLedger Business Engine</title>
+    <title>Enterprise Trading Ledger OS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         .glass {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.07);
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
         }
         html[data-theme="light"] {
-            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
-            --card-bg: rgba(255, 255, 255, 0.8);
-            --text-color: #1e293b;
+            --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            --card-bg: rgba(255, 255, 255, 0.75);
+            --text-color: #0f172a;
         }
         html[data-theme="dark"] {
-            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #020617 100%);
-            --card-bg: rgba(15, 23, 42, 0.6);
+            --bg-gradient: linear-gradient(135deg, #090d16 0%, #020408 100%);
+            --card-bg: rgba(13, 20, 35, 0.6);
             --text-color: #f8fafc;
         }
-        body { background: var(--bg-gradient); color: var(--text-color); transition: all 0.3s ease; }
-        @media print { .no-print { display: none !important; } .print-area { width: 100%; } }
+        body { background: var(--bg-gradient); color: var(--text-color); transition: all 0.2s ease; }
+        @media print { .no-print { display: none !important; } .print-area { width: 100%; border:none; background:white; color:black; } }
     </style>
 </head>
 <body class="min-h-screen font-sans antialiased">
 
-    <div id="toast-box" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+    <div id="toast-box" class="fixed top-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-    <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xl">
-        <div class="w-full max-w-md p-8 rounded-2xl glass bg-slate-900/50 shadow-2xl border border-slate-800">
-            <div class="flex justify-center mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 text-3xl font-extrabold tracking-tight">
-                <i class="fa-solid fa-cube mr-2 self-center"></i> CORE LEDGER
+    <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-3xl">
+        <div class="w-full max-w-md p-8 rounded-2xl glass bg-slate-900/40 shadow-2xl border border-white/5">
+            <div class="flex flex-col items-center mb-8">
+                <div class="p-4 bg-blue-500/10 text-blue-400 rounded-full text-3xl mb-3"><i class="fa-solid fa-shield-halved"></i></div>
+                <h2 class="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400">LEDGER GATEWAY</h2>
+                <p class="text-xs text-slate-400 mt-1">Enterprise Trading Control Workspace</p>
             </div>
             <div class="space-y-4">
-                <input type="text" id="username" placeholder="Username" class="w-full px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-lg text-white focus:outline-none focus:border-purple-500 transition">
-                <input type="password" id="password" placeholder="Password" class="w-full px-4 py-3 bg-slate-950/50 border border-slate-800 rounded-lg text-white focus:outline-none focus:border-purple-500 transition">
-                <button onclick="login()" class="w-full py-3 mt-2 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 text-white rounded-lg font-semibold shadow-lg hover:opacity-90 transition">Initialize Console</button>
+                <div>
+                    <label class="text-xs font-bold tracking-wider uppercase opacity-60 block mb-1">Security Username</label>
+                    <input type="text" id="username" placeholder="admin" class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:border-blue-500 transition">
+                </div>
+                <div>
+                    <label class="text-xs font-bold tracking-wider uppercase opacity-60 block mb-1">Access Token Password</label>
+                    <input type="password" id="password" placeholder="admin123" class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:border-blue-500 transition">
+                </div>
+                <button onclick="login()" class="w-full py-3.5 mt-4 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 text-white rounded-xl font-bold tracking-wide shadow-xl hover:opacity-95 transition">Authorize Handshake</button>
             </div>
         </div>
     </div>
 
-    <div id="app-screen" class="flex flex-col md:flex-row min-h-screen" style="display: none;">
-        <aside class="w-full md:w-64 glass bg-slate-950/40 p-6 flex flex-col gap-6 no-print border-r border-slate-800/40">
+    <div id="app-screen" class="flex flex-col lg:flex-row min-h-screen" style="display: none;">
+        
+        <aside class="w-full lg:w-72 glass bg-slate-950/50 p-6 flex flex-col gap-6 no-print border-r border-white/5">
             <div class="flex items-center justify-between">
-                <span class="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400">LEOPARD OS</span>
-                <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-white/5 transition"><i class="fa-solid fa-circle-half-stroke text-purple-400"></i></button>
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
+                    <span class="text-lg font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">METRIC OS v3</span>
+                </div>
+                <button onclick="toggleTheme()" class="p-2.5 rounded-xl hover:bg-white/5 transition"><i class="fa-solid fa-circle-half-stroke text-purple-400"></i></button>
             </div>
+
+            <div class="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center font-bold text-white uppercase shadow-md" id="user-badge">?</div>
+                <div>
+                    <div class="font-bold text-sm" id="user-display-name">Loading Profile...</div>
+                    <div class="text-xs opacity-50 font-medium" id="user-display-role">Permissions...</div>
+                </div>
+            </div>
+
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-xs opacity-40"></i>
+                <input type="text" id="global-search-input" onkeyup="triggerGlobalSearch()" placeholder="Omni Global Lookup..." class="w-full pl-9 pr-4 py-2.5 bg-black/30 border border-white/5 rounded-xl text-xs focus:outline-none focus:border-blue-500 text-white">
+            </div>
+
             <nav class="flex flex-col gap-1 space-y-1 flex-grow">
-                <button onclick="nav('dashboard')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-chart-pie w-5 text-blue-400"></i> Analytics</button>
-                <button onclick="nav('customers')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-user-group w-5 text-purple-400"></i> Customers</button>
-                <button onclick="nav('inventory')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-boxes-stacked w-5 text-emerald-400"></i> Stock Control</button>
-                <button onclick="nav('transactions')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-file-invoice-dollar w-5 text-amber-400"></i> Invoices</button>
-                <button onclick="nav('expenses')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-wallet w-5 text-rose-400"></i> Expenses</button>
+                <button onclick="nav('dashboard')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-chart-pie w-5 text-blue-400"></i> Analytics Engine</button>
+                <button onclick="nav('customers')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-address-book w-5 text-purple-400"></i> CRM Directories</button>
+                <button onclick="nav('inventory')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-warehouse w-5 text-emerald-400"></i> Stock & Assets</button>
+                <button onclick="nav('transactions')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-receipt w-5 text-amber-400"></i> Trade Invoices</button>
+                <button onclick="nav('expenses')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-wallet w-5 text-rose-400"></i> Core Expenses</button>
+                <button onclick="nav('audit')" id="nav-audit-btn" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-fingerprint w-5 text-indigo-400"></i> System Audits</button>
             </nav>
-            <button onclick="logout()" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-rose-500/10 text-rose-400 font-medium transition text-left"><i class="fa-solid fa-power-off w-5"></i> Terminate Session</button>
+
+            <button onclick="logout()" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-rose-500/10 text-rose-400 font-bold transition text-left border border-transparent hover:border-rose-500/20"><i class="fa-solid fa-power-off w-5"></i> Kill Session Context</button>
         </aside>
 
-        <main class="flex-grow p-6 md:p-10 overflow-x-hidden print-area">
+        <main class="flex-grow p-6 lg:p-10 overflow-x-hidden print-area">
             
             <section id="view-dashboard" class="space-y-8 stage">
-                <div>
-                    <h1 class="text-3xl font-extrabold tracking-tight">Financial Overview</h1>
-                    <p class="text-sm opacity-60">Real-time trading performance & margin status</p>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="glass p-6 rounded-2xl bg-gradient-to-br from-blue-500/10 to-transparent">
-                        <div class="flex justify-between items-center opacity-60 text-sm mb-2">Gross Turnover <i class="fa-solid fa-arrow-trend-up text-blue-400"></i></div>
-                        <div class="text-2xl font-black tracking-tight" id="m-sales">₹0.00</div>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-3xl font-black tracking-tight">Analytics Command Center</h1>
+                        <p class="text-xs opacity-50 mt-0.5">Real-time operational overview and structural risk assessment</p>
                     </div>
-                    <div class="glass p-6 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-transparent">
-                        <div class="flex justify-between items-center opacity-60 text-sm mb-2">Net Income/Profit <i class="fa-solid fa-coins text-emerald-400"></i></div>
-                        <div class="text-2xl font-black tracking-tight" id="m-profit">₹0.00</div>
-                    </div>
-                    <div class="glass p-6 rounded-2xl bg-gradient-to-br from-rose-500/10 to-transparent">
-                        <div class="flex justify-between items-center opacity-60 text-sm mb-2">Receivables Due <i class="fa-solid fa-clock-column text-rose-400"></i></div>
-                        <div class="text-2xl font-black tracking-tight text-rose-400" id="m-pending">₹0.00</div>
-                    </div>
-                    <div class="glass p-6 rounded-2xl bg-gradient-to-br from-purple-500/10 to-transparent">
-                        <div class="flex justify-between items-center opacity-60 text-sm mb-2">Active Accounts <i class="fa-solid fa-users text-purple-400"></i></div>
-                        <div class="text-2xl font-black tracking-tight" id="m-customers">0</div>
+                    <div class="flex items-center gap-2 no-print">
+                        <button onclick="exportFullDatabaseBackup()" id="admin-backup-btn" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold transition border border-white/5"><i class="fa-solid fa-cloud-arrow-down mr-1"></i> Dump Vault Backup</button>
+                        <label id="admin-restore-lbl" class="px-4 py-2.5 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white rounded-xl text-xs font-bold transition border border-blue-500/20 cursor-pointer">
+                            <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Safe Load Restore
+                            <input type="file" id="backup-file-picker" accept=".db" onchange="importFullDatabaseBackup(event)" class="hidden">
+                        </label>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="glass p-6 rounded-2xl bg-slate-900/20"><h3 class="mb-4 font-bold opacity-80">Monthly Performance Scaling</h3><canvas id="chart-sales"></canvas></div>
-                    <div class="glass p-6 rounded-2xl bg-slate-900/20"><h3 class="mb-4 font-bold opacity-80">Top Outstanding Receivables</h3><canvas id="chart-dues"></canvas></div>
-                </div>
-            </section>
-
-            <section id="view-customers" class="space-y-6 stage hidden">
-                <div class="glass p-6 rounded-2xl space-y-4 no-print">
-                    <h3 class="text-lg font-bold">Onboard New Customer Account</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input type="text" id="c-name" placeholder="Legal Name" class="bg-black/20 border border-white/10 rounded-lg p-2.5 focus:outline-none focus:border-purple-500 text-white">
-                        <input type="text" id="c-phone" placeholder="Phone Number" class="bg-black/20 border border-white/10 rounded-lg p-2.5 focus:outline-none focus:border-purple-500 text-white">
-                        <input type="text" id="c-address" placeholder="Physical Address" class="bg-black/20 border border-white/10 rounded-lg p-2.5 focus:outline-none focus:border-purple-500 text-white">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div class="glass p-5 rounded-xl bg-gradient-to-br from-blue-500/5 to-transparent">
+                        <div class="flex justify-between items-center opacity-50 text-xs font-bold tracking-wider uppercase mb-2">Today's Revenue</div>
+                        <div class="text-2xl font-black tracking-tight text-blue-400" id="db-today-sales">₹0.00</div>
                     </div>
-                    <textarea id="c-notes" placeholder="Internal Business Notes..." class="w-full bg-black/20 border border-white/10 rounded-lg p-2.5 h-20 focus:outline-none focus:border-purple-500 text-white"></textarea>
-                    <button onclick="addCustomer()" class="px-6 py-2.5 bg-purple-600 rounded-lg text-white font-medium hover:bg-purple-700 transition">Save Customer Profile</button>
-                </div>
-
-                <div class="flex justify-between items-center gap-4 no-print">
-                    <input type="text" id="search-cust" placeholder="Search profiles dynamically..." onkeyup="filterTable('table-cust', 'search-cust')" class="glass px-4 py-2 rounded-xl text-sm w-full max-w-xs focus:outline-none focus:border-purple-500">
-                    <button onclick="exportTableToCSV('table-cust', 'customer-directory')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold transition">Export CSV</button>
-                </div>
-
-                <table id="table-cust" class="w-full rounded-2xl overflow-hidden glass text-left">
-                    <thead class="bg-white/5 text-xs font-bold tracking-wider uppercase opacity-80">
-                        <tr><th class="p-4">Account ID</th><th class="p-4">Client Name</th><th class="p-4">Contact</th><th class="p-4">Location</th><th class="p-4 no-print">Actions</th></tr>
-                    </thead>
-                    <tbody class="divide-y divide-white/5 text-sm"></tbody>
-                </table>
-            </section>
-
-            <section id="view-inventory" class="space-y-6 stage hidden">
-                <div class="glass p-6 rounded-2xl space-y-4 no-print">
-                    <h3 class="text-lg font-bold">Inbound New Inventory Items</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                        <input type="text" id="i-name" placeholder="Product Title" class="bg-black/20 border border-white/10 rounded-lg p-2 text-white">
-                        <input type="text" id="i-sku" placeholder="SKU / Barcode" class="bg-black/20 border border-white/10 rounded-lg p-2 text-white">
-                        <input type="number" id="i-qty" placeholder="Inbound Qty" class="bg-black/20 border border-white/10 rounded-lg p-2 text-white">
-                        <input type="number" id="i-min" placeholder="Alert Limit" class="bg-black/20 border border-white/10 rounded-lg p-2 text-white">
-                        <input type="number" id="i-cost" placeholder="Cost (₹)" class="bg-black/20 border border-white/10 rounded-lg p-2 text-white">
-                        <input type="number" id="i-sell" placeholder="Retail (₹)" class="bg-black/20 border border-white/10 rounded-lg p-2 text-white">
+                    <div class="glass p-5 rounded-xl bg-gradient-to-br from-cyan-500/5 to-transparent">
+                        <div class="flex justify-between items-center opacity-50 text-xs font-bold tracking-wider uppercase mb-2">Today's Profit</div>
+                        <div class="text-2xl font-black tracking-tight text-cyan-400" id="db-today-profit">₹0.00</div>
                     </div>
-                    <button onclick="addInventory()" class="px-6 py-2.5 bg-emerald-600 rounded-lg text-white font-medium hover:bg-emerald-700 transition">Register Asset Stock</button>
-                </div>
-
-                <table id="table-inv" class="w-full rounded-2xl overflow-hidden glass text-left">
-                    <thead class="bg-white/5 text-xs uppercase opacity-80">
-                        <tr><th class="p-4">Product Unit</th><th class="p-4">SKU Code</th><th class="p-4">Available Stock</th><th class="p-4">Cost Value</th><th class="p-4">Base Retail</th><th class="p-4">Status</th></tr>
-                    </thead>
-                    <tbody class="divide-y divide-white/5 text-sm"></tbody>
-                </table>
-            </section>
-
-            <section id="view-transactions" class="space-y-6 stage hidden">
-                <div class="glass p-6 rounded-2xl space-y-4 no-print">
-                    <h3 class="text-lg font-bold">Generate Outbound Commercial Invoice</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <select id="tx-cust-sel" class="bg-slate-900 border border-white/10 rounded-lg p-2.5 text-white"></select>
-                        <select id="tx-inv-sel" onchange="autoFillPrice()" class="bg-slate-900 border border-white/10 rounded-lg p-2.5 text-white"></select>
-                        <input type="date" id="tx-date" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
-                        <input type="number" id="tx-qty-input" placeholder="Quantity Ordered" oninput="runTaxEngine()" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
+                    <div class="glass p-5 rounded-xl bg-gradient-to-br from-emerald-500/5 to-transparent">
+                        <div class="flex justify-between items-center opacity-50 text-xs font-bold tracking-wider uppercase mb-2">Net Accumulation</div>
+                        <div class="text-2xl font-black tracking-tight text-emerald-400" id="db-total-profit">₹0.00</div>
                     </div>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <input type="number" id="tx-rate-input" placeholder="Unit Rate Override" oninput="runTaxEngine()" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
-                        <input type="number" id="tx-disc-input" placeholder="Total Cash Discount (₹)" oninput="runTaxEngine()" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
-                        <input type="number" id="tx-gst-input" placeholder="Integrated GST (₹)" oninput="runTaxEngine()" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
-                        <input type="number" id="tx-cess-input" placeholder="Additional Cess (₹)" oninput="runTaxEngine()" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
+                    <div class="glass p-5 rounded-xl bg-gradient-to-br from-rose-500/5 to-transparent">
+                        <div class="flex justify-between items-center opacity-50 text-xs font-bold tracking-wider uppercase mb-2">Outstanding Dues</div>
+                        <div class="text-2xl font-black tracking-tight text-rose-400" id="db-pending-dues">₹0.00</div>
                     </div>
-                    <div class="flex justify-between items-center pt-2">
-                        <div class="text-lg font-bold">Computed Grand Total: <span class="text-cyan-400" id="tx-aggregate-lbl">₹0.00</span></div>
-                        <button onclick="commitTransaction()" class="px-6 py-2.5 bg-blue-600 rounded-lg text-white font-medium hover:bg-blue-700 transition">Execute & Print Transaction</button>
-                    </div>
-                </div>
-
-                <table id="table-tx" class="w-full rounded-2xl overflow-hidden glass text-left">
-                    <thead class="bg-white/5 text-xs uppercase opacity-80">
-                        <tr><th class="p-4">Date</th><th class="p-4">Purchaser</th><th class="p-4">Item details</th><th class="p-4">Invoice Value</th><th class="p-4">Yield Margin</th><th class="p-4 no-print">Control</th></tr>
-                    </thead>
-                    <tbody class="divide-y divide-white/5 text-sm"></tbody>
-                </table>
-            </section>
-
-            <section id="view-expenses" class="space-y-6 stage hidden">
-                <div class="glass p-6 rounded-2xl space-y-4 no-print">
-                    <h3 class="text-lg font-bold">Record Operational Expenses</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <input type="text" id="e-title" placeholder="Expense Voucher Name" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
-                        <select id="e-cat" class="bg-slate-900 border border-white/10 rounded-lg p-2.5 text-white">
-                            <option value="Logistics">Logistics & Supply</option>
-                            <option value="Rent">Facilities & Rent</option>
-                            <option value="Salaries">Staff Salaries</option>
-                            <option value="Utilities">Utilities & Energy</option>
-                        </select>
-                        <input type="number" id="e-amt" placeholder="Value Amount (₹)" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
-                        <input type="date" id="e-date" class="bg-black/20 border border-white/10 rounded-lg p-2.5 text-white">
-                    </div>
-                    <button onclick="addExpense()" class="px-6 py-2.5 bg-rose-600 rounded-lg text-white font-medium hover:bg-rose-700 transition">Authorize Fund Release</button>
-                </div>
-
-                <table id="table-exp" class="w-full rounded-2xl overflow-hidden glass text-left">
-                    <thead class="bg-white/5 text-xs uppercase opacity-80">
-                        <tr><th class="p-4">Date Issued</th><th class="p-4">Voucher Title</th><th class="p-4">Operational Sector</th><th class="p-4">Financial Amount</th></tr>
-                    </thead>
-                    <tbody class="divide-y divide-white/5 text-sm"></tbody>
-                </table>
-            </section>
-
-            <section id="view-ledger-panel" class="space-y-6 stage hidden">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-2xl font-black" id="ledger-title-header">Account Ledger History</h2>
-                    <button onclick="nav('customers')" class="px-4 py-2 bg-white/5 rounded-xl text-xs no-print hover:bg-white/10">Return to Directory</button>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 no-print">
-                    <div class="glass p-6 rounded-2xl space-y-3">
-                        <h4 class="font-bold text-sm">Post Inbound Payment Credit</h4>
-                        <input type="number" id="ledger-pay-amt" placeholder="Amount (₹)" class="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white">
-                        <select id="ledger-pay-method" class="w-full bg-slate-900 border border-white/10 rounded-lg p-2 text-white">
-                            <option value="Bank Transfer">RTGS / Bank Wire</option>
-                            <option value="UPI">Instant UPI</option>
-                            <option value="Cash">Physical Cash</option>
-                        </select>
-                        <button onclick="submitLedgerPayment()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-xs transition">Confirm Collection</button>
-                    </div>
-                    <div class="glass p-6 rounded-2xl flex flex-col justify-between">
-                        <span class="text-xs opacity-60 uppercase font-bold tracking-wider">Quick Actions</span>
-                        <div class="flex flex-col gap-2">
-                            <a id="wa-link" target="_blank" class="w-full py-3 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-xl text-center font-bold text-sm transition"><i class="fa-brands fa-whatsapp mr-1"></i> Send Reminders</a>
-                            <button onclick="window.print()" class="w-full py-3 bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white rounded-xl font-bold text-sm transition"><i class="fa-solid fa-print mr-1"></i> Print / Save PDF Statement</button>
+                    <div class="glass p-5 rounded-xl bg-gradient-to-br from-amber-500/5 to-transparent">
+                        <div class="flex justify-between items-center opacity-50 text-xs font-bold tracking-wider uppercase mb-2">System Risk Alerts</div>
+                        <div class="text-xs font-bold space-y-1 mt-1 text-amber-400">
+                            <div id="db-alert-stock"><i class="fa-solid fa-box mr-1"></i> 0 Low Stock Items</div>
+                            <div id="db-alert-overdue"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 0 Overdue Profiles</div>
                         </div>
                     </div>
                 </div>
 
-                <table id="table-ledger" class="w-full rounded-2xl overflow-hidden glass text-left">
-                    <thead class="bg-white/5 text-xs uppercase opacity-80">
-                        <tr><th class="p-4">Date</th><th class="p-4">Classification</th><th class="p-4">Operational Log Details</th><th class="p-4">Debit (Charges)</th><th class="p-4">Credit (Receipts)</th><th class="p-4">Running Liability Balance</th></tr>
-                    </thead>
-                    <tbody class="divide-y divide-white/5 text-sm"></tbody>
-                </table>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="glass p-5 rounded-2xl lg:col-span-2"><h4 class="mb-4 text-xs font-bold uppercase tracking-wider opacity-60">Revenue vs Structural Profit Scaling</h4><div class="h-64"><canvas id="canvas-sales"></canvas></div></div>
+                    <div class="glass p-5 rounded-2xl"><h4 class="mb-4 text-xs font-bold uppercase tracking-wider opacity-60">Inventory Allocation Breakdown</h4><div class="h-64"><canvas id="canvas-products"></canvas></div></div>
+                </div>
             </section>
 
-        </main>
-    </div>
+            <section id="view-customers" class="space-y-6 stage hidden">
+                <div class="glass p-6 rounded-2xl space-y-4 no-print border border-purple-500/10">
+                    <h3 class="text-md font-black tracking-wide"><i class="fa-solid fa-user-plus text-purple-400 mr-2"></i>Provision CRM Customer Account Record</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input type="text" id="c-name" placeholder="Legal Account Corporate Title" class="bg-black/30 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white">
+                        <input type="text" id="c-phone" placeholder="Active Phone (Country Code Required)" class="bg-black/30 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white">
+                        <input type="text" id="c-address" placeholder="Physical Operational Base Address" class="bg-black/30 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white">
+                    </div>
+                    <textarea id="c-notes" placeholder="Internal parameters, lines of credit notes, operational notes..." class="w-full bg-black/30 border border-white/10 rounded-xl p-3 h-20 text-sm focus:outline-none focus:border-purple-500 text-white"></textarea>
+                    <button onclick="addCustomer()" class="px-6 py-3 bg-purple-600 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-purple-700 transition">Commit Profile Matrix</button>
+                </div>
 
-    <script src="app.js"></script>
-</body>
-</html>
+                <div class="flex justify-between items-center no-print">
+                    <h2 class="text-xl font-bold tracking-tight">Active Profiles Directory</h2>
+                    <button onclick="exportTableToCSV('table-cust', 'crm-profiles')" class="px-3 py-1.5 bg-slate-800 rounded-lg text-xs font-bold border border-white/5">Export Registry (.CSV)</button>
+                </div>
+                <div class="overflow-x-auto rounded-2xl glass">
+                    <table id="table-cust" class="w-full text-left border-collapse">
+                        <thead class="bg-white/5 text-xs font-bold tracking-wider uppercase opacity-60 border-b border-white/5">
+                            <tr><th class="p-4">Reference Identity</th><th class="p-4">Profile Name</th><th class="p-4">Contact Protocol</th><th class="p-4">Physical Destination</th><th class="p-4 no-print text-right">Actions</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5 text-sm"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="view-inventory" class="space-y-6 stage hidden">
+                <div class="glass p-6 rounded-2xl space-y-4 no-print border border-emerald-500/10">
+                    <h3 class="text-md font-black tracking-wide"><i class="fa-solid fa-boxes-packing text-emerald-400 mr-2"></i>Inbound Warehouse Asset Class Catalogue Entry</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                        <input type="text" id="i-name" placeholder="Asset Identifier Title" class="bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
+                        <input type="text" id="i-sku" placeholder="SKU Signature Code" class="bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
+                        <input type="number" id="i-qty" placeholder="Base Quantity" class="bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
+                        <input type="number" id="i-min" placeholder="Minimum Level Alert" class="bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
+                        <input type="number" id="i-cost" placeholder="Unit Cost Price (₹)" class="bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
+                        <input type="number" id="i-sell" placeholder="Unit Base Retail (₹)" class="bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
+                    </div>
+                    <button onclick="addInventory()" class="px-6 py-3 bg-emerald-600 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-emerald-700 transition">Register Asset Class</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 no-print">
+                    <div class="glass p-5 rounded-2xl space-y-3 border border-emerald-500/10 lg:col-span-1">
+                        <h4 class="text-xs font-bold uppercase tracking-wider opacity-60">Inventory Intervention Matrix</h4>
+                        <select id="adj-product-sel" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white"></select>
+                        <div class="grid grid-cols-2 gap-2">
+                            <select id="adj-type" class="bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white">
+                                <option value="IN">Stock In (+)</option>
+                                <option value="OUT">Stock Out (-)</option>
+                            </select>
+                            <input type="number" id="adj-qty" placeholder="Adjustment Qty" class="bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
+                        </div>
+                        <input type="text" id="adj-ref" placeholder="Audit documentation tracking note..." class="w-full bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
+                        <button onclick="submitInventoryAdjustment()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs transition border border-white/5">Execute Warehouse Balancing</button>
+                    </div>
+                    <div class="overflow-x-auto rounded-2xl glass md:col-span-2">
+                        <table id="table-inv" class="w-full text-left border-collapse">
+                            <thead class="bg-white/5 text-xs uppercase opacity-60 border-b border-white/5">
+                                <tr><th class="p-4">Asset Class Title</th><th class="p-4">SKU Identity</th><th class="p-4">On Hand Stock</th><th class="p-4">Cost Value</th><th class="p-4">Target Retail</th><th class="p-4">Operational Status</th></tr>
+                            </thead>
+                            <tbody class="divide-y divide-white/5 text-xs"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-transactions" class="space-y-6 stage hidden">
+                <div class="glass p-6 rounded-2xl space-y-4 no-print border border-amber-500/10">
+                    <h3 class="text-md font-black tracking-wide"><i class="fa-solid fa-file-signature text-amber-400 mr-2"></i>Generate Commercial Outbound Settlement Invoice</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <select id="tx-cust-sel" class="bg-slate-900 border border-white/10 rounded-xl p-3 text-xs text-white"></select>
+                        <select id="tx-inv-sel" onchange="autoFillPrice()" class="bg-slate-900 border border-white/10 rounded-xl p-3 text-xs text-white"></select>
+                        <input type="date" id="tx-date" class="bg-black/30 border border-white/10 rounded-xl p-3 text-xs text-white">
+                        <input type="date" id="tx-due-date" class="bg-black/30 border border-white/10 rounded-xl p-3 text-xs text-white">
+                        <input type="number" id="tx-qty-input" placeholder="Quantity Invoiced" oninput="runTaxEngine()" class="bg-black/30 border border-white/10 rounded-xl p-3 text-xs text-white">
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <input type="number" id="tx-rate-input" placeholder="Custom Price Override (₹)" oninput="runTaxEngine()" class="bg-black/30 border border-white/10 rounded-xl p-3 text-xs text-white">
+                        <input type="number" id="tx-disc-input" placeholder="Trade Discount Deduct (₹)" oninput="runTaxEngine()" class="bg-black/30 border border-white/10 rounded-xl p-3 text-xs text-white">
+                        <input type="number" id="tx-gst-input" placeholder="Integrated IGST (₹)" oninput="runTaxEngine()" class="bg-black/30 border border-white/10 rounded-xl p-3 text-xs text-white">
+                        <input type="number" id="tx-cess-input" placeholder="State/Central Cess (₹)" oninput="runTaxEngine()" class="bg-black/30 border border-white/10 rounded-xl p-
