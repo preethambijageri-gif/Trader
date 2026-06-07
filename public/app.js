@@ -1,21 +1,23 @@
 let charts = {};
 let activeCustomerId = null;
+let activeCustomerProfile = {};
 let globalInventoryRegistry = [];
+let localUserSessionContext = { username: null, role: null };
 
 document.addEventListener('DOMContentLoaded', () => {
     checkAuthenticationState();
     const today = new Date().toISOString().split('T')[0];
-    ['tx-date', 'e-date'].forEach(id => {
+    ['tx-date', 'tx-due-date', 'e-date'].forEach(id => {
         const input = document.getElementById(id);
-        if(input) input.value = today;
+        if (input) input.value = today;
     });
 });
 
-// Toast Banners
+// Front-End Interactive Toast Framework Node
 function launchToast(msg, type = 'info') {
     const box = document.getElementById('toast-box');
     const toast = document.createElement('div');
-    toast.className = `glass px-5 py-3 rounded-xl text-sm font-semibold text-white shadow-xl flex items-center gap-3 border transition-all duration-300 transform translate-x-20 opacity-0`;
+    toast.className = `glass px-5 py-3.5 rounded-xl text-xs font-bold text-white shadow-2xl flex items-center gap-3 border transition-all duration-300 transform translate-x-20 opacity-0`;
     
     if (type === 'success') toast.style.borderColor = '#10b981';
     else if (type === 'error') toast.style.borderColor = '#f43f5e';
@@ -27,16 +29,30 @@ function launchToast(msg, type = 'info') {
     setTimeout(() => { toast.classList.remove('translate-x-20', 'opacity-0'); }, 10);
     setTimeout(() => {
         toast.classList.add('translate-x-20', 'opacity-0');
-        setTimeout(() => toast.remove(), 300);
-    }, 4000);
+        setTimeout(() => toast.remove(), 400);
+    }, 4500);
 }
 
-// Authentication Handlers
+// Security Session Interceptor Matrix
 async function checkAuthenticationState() {
     const data = await (await fetch('/api/auth/check')).json();
     if(data.authed) {
+        localUserSessionContext.username = data.username;
+        localUserSessionContext.role = data.role;
+        
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('app-screen').style.display = 'flex';
+        
+        document.getElementById('user-display-name').innerText = data.username;
+        document.getElementById('user-display-role').innerText = `Role Context: ${data.role}`;
+        document.getElementById('user-badge').innerText = data.username.slice(0,2);
+        
+        // RBAC UI Element Management Modifiers
+        if(data.role !== 'Admin') {
+            document.getElementById('nav-audit-btn').style.display = 'none';
+            document.getElementById('admin-backup-btn').style.display = 'none';
+            document.getElementById('admin-restore-lbl').style.display = 'none';
+        }
         nav('dashboard');
     }
 }
@@ -48,17 +64,30 @@ async function login() {
             body: JSON.stringify({username: document.getElementById('username').value, password: document.getElementById('password').value})
         });
         if(res.ok) {
-            launchToast("Authentication Handshake Complete", "success");
+            launchToast("Cryptographic Session Credentials Validated", "success");
             checkAuthenticationState();
         } else {
-            launchToast("Invalid Credentials", "error");
+            launchToast("Authentication Error: Credentials Signature Invalid", "error");
         }
-    } catch (e) { launchToast("Network connection failed", "error"); }
+    } catch (e) { launchToast("Fatal transmission structural error.", "error"); }
 }
 
 async function logout() {
     await fetch('/api/auth/logout', {method: 'POST'});
     location.reload();
+}
+
+// Workspace Structural Layout View Controller Switcher
+function nav(sectionId) {
+    document.querySelectorAll('.stage').forEach(el => el.classList.add('hidden'));
+    document.getElementById(`view-${sectionId}`).classList.remove('hidden');
+    
+    if (sectionId === 'dashboard') loadAnalyticalDashboard();
+    if (sectionId === 'customers') loadCustomerDirectory();
+    if (sectionId === 'inventory') { loadStockInventoryTable(); updateInventoryDropdownSelectors(); }
+    if (sectionId === 'transactions') { loadTransactionalPrerequisites(); loadInvoicesTable(); }
+    if (sectionId === 'expenses') loadExpenseTable();
+    if (sectionId === 'audit') loadAuditLogsTable();
 }
 
 // Theme Handlers
@@ -67,89 +96,80 @@ function toggleTheme() {
     const current = html.getAttribute('data-theme');
     const next = current === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', next);
-    launchToast(`Switched workspace theme to ${next}`);
-    renderAnalyticsCharts();
+    launchToast(`Switched workspace theme context to ${next}`);
+    if(!document.getElementById('view-dashboard').classList.contains('hidden')) renderAnalyticsCharts();
 }
 
-// View Controller Routing
-function nav(sectionId) {
-    document.querySelectorAll('.stage').forEach(el => el.classList.add('hidden'));
-    document.getElementById(`view-${sectionId}`).classList.remove('hidden');
+// Dynamic Omni Global Lookup Filtering Matrix Engine
+function triggerGlobalSearch() {
+    const query = document.getElementById('global-search-input').value.toLowerCase();
+    const openStage = document.querySelector('.stage:not(.hidden)');
+    if(!openStage) return;
     
-    if (sectionId === 'dashboard') loadAnalyticalDashboard();
-    if (sectionId === 'customers') loadCustomerDirectory();
-    if (sectionId === 'inventory') loadStockInventoryTable();
-    if (sectionId === 'transactions') { loadTransactionalPrerequisites(); loadInvoicesTable(); }
-    if (sectionId === 'expenses') loadExpenseTable();
-}
-
-// Live Search Row Filtering
-function filterTable(tableId, inputId) {
-    const filter = document.getElementById(inputId).value.toLowerCase();
-    const rows = document.getElementById(tableId).getElementsByTagName('tbody')[0].rows;
+    const targetTable = openStage.querySelector('table');
+    if(!targetTable) return;
+    
+    const rows = targetTable.getElementsByTagName('tbody')[0].rows;
     for (let row of rows) {
-        row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none';
+        row.style.display = row.innerText.toLowerCase().includes(query) ? '' : 'none';
     }
 }
 
-// Analytics Metrics
+// Dashboard Summary Computations Stream
 async function loadAnalyticalDashboard() {
     const stats = await (await fetch('/api/analytics/summary')).json();
-    document.getElementById('m-sales').innerText = `₹${stats.sales.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-    document.getElementById('m-profit').innerText = `₹${stats.profit.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-    document.getElementById('m-pending').innerText = `₹${stats.pending.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-    document.getElementById('m-customers').innerText = stats.customers;
+    document.getElementById('db-today-sales').innerText = `₹${stats.todaySales.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+    document.getElementById('db-today-profit').innerText = `₹${stats.todayProfit.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+    document.getElementById('db-total-profit').innerText = `₹${stats.totalProfit.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+    document.getElementById('db-pending-dues').innerText = `₹${stats.pendingDues.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+    
+    document.getElementById('db-alert-stock').innerHTML = `<i class="fa-solid fa-box mr-1"></i> ${stats.lowStockCount} Shortage Warnings`;
+    document.getElementById('db-alert-overdue').innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${stats.overdueAccounts} Overdue Profiles`;
+    
     renderAnalyticsCharts();
 }
 
 async function renderAnalyticsCharts() {
     const data = await (await fetch('/api/analytics/charts')).json();
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const textThemeColor = isDark ? '#f8fafc' : '#1e293b';
+    const textThemeColor = document.documentElement.getAttribute('data-theme') === 'dark' ? '#f8fafc' : '#0f172a';
 
     if (charts.sales) charts.sales.destroy();
-    if (charts.dues) charts.dues.destroy();
+    if (charts.products) charts.products.destroy();
 
-    charts.sales = new Chart(document.getElementById('chart-sales').getContext('2d'), {
+    charts.sales = new Chart(document.getElementById('canvas-sales').getContext('2d'), {
         type: 'line',
         data: {
-            labels: data.salesGraph.map(x => x.month),
-            datasets: [{
-                label: 'Gross Operations Revenue',
-                data: data.salesGraph.map(x => x.revenue),
-                borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.1)', fill: true, tension: 0.4
-            }]
+            labels: data.txHistory.map(x => x.month),
+            datasets: [
+                { label: 'Gross Revenue Pipeline', data: data.txHistory.map(x => x.revenue), borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.05)', fill: true, tension: 0.35 },
+                { label: 'Net Operations Margins', data: data.txHistory.map(x => x.net_profit), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)', fill: true, tension: 0.35 }
+            ]
         },
-        options: { plugins: { legend: { labels: { color: textThemeColor } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: textThemeColor, font: { weight: 'bold' } } } } }
     });
 
-    charts.dues = new Chart(document.getElementById('chart-dues').getContext('2d'), {
+    charts.products = new Chart(document.getElementById('canvas-products').getContext('2d'), {
         type: 'bar',
         data: {
-            labels: data.dueGraph.map(x => x.name),
-            datasets: [{
-                label: 'Outstanding Balance Burdens',
-                data: data.dueGraph.map(x => x.due),
-                backgroundColor: '#f43f5e', borderRadius: 8
-            }]
+            labels: data.leadingProducts.map(x => x.name),
+            datasets: [{ label: 'Operational Volume Units Sold', data: data.leadingProducts.map(x => x.volume), backgroundColor: '#a855f7', borderRadius: 6 }]
         },
-        options: { plugins: { legend: { labels: { color: textThemeColor } } } }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: textThemeColor, font: { weight: 'bold' } } } } }
     });
 }
 
-// Customers Layer
+// CRM Layer Management Engine
 async function loadCustomerDirectory() {
     const data = await (await fetch('/api/customers')).json();
     const tbody = document.querySelector('#table-cust tbody');
     tbody.innerHTML = data.map(c => `
-        <tr>
-            <td class="p-4 font-mono text-xs text-purple-400">#CUST-${c.id}</td>
-            <td class="p-4 font-bold">${c.name}</td>
+        <tr class="hover:bg-white/5 transition border-b border-white/5">
+            <td class="p-4 font-mono text-xs text-purple-400 font-bold">#CRM-ID-${c.id}</td>
+            <td class="p-4 font-black">${c.name}</td>
             <td class="p-4">${c.phone}</td>
-            <td class="p-4 opacity-70">${c.address}</td>
-            <td class="p-4 no-print flex gap-2">
-                <button onclick="launchCustomerLedgerPanel(${c.id}, '${c.name}', '${c.phone}')" class="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-lg text-xs font-semibold hover:bg-blue-500 hover:text-white transition">Statement / Profile</button>
-                <button onclick="deleteCustomer(${c.id})" class="px-2 py-1 bg-rose-500/10 text-rose-400 rounded-lg text-xs hover:bg-rose-500 hover:text-white transition"><i class="fa-solid fa-trash"></i></button>
+            <td class="p-4 opacity-60 text-xs font-medium">${c.address}</td>
+            <td class="p-4 no-print text-right">
+                <button onclick="launchIsolatedClientLedgerStack(${c.id}, '${c.name}', '${c.phone}')" class="px-3 py-1.5 bg-blue-500/10 text-blue-400 rounded-lg text-xs font-bold hover:bg-blue-500 hover:text-white transition">Statement / Post Payment</button>
             </td>
         </tr>`).join('');
 }
@@ -159,66 +179,86 @@ async function addCustomer() {
         name: document.getElementById('c-name').value, phone: document.getElementById('c-phone').value,
         address: document.getElementById('c-address').value, notes: document.getElementById('c-notes').value
     };
-    if(!payload.name || !payload.phone) return launchToast("Missing core data elements.", "error");
+    if (!payload.name || !payload.phone) return launchToast("Aborted: Missing critical structural customer metadata.", "error");
     await fetch('/api/customers', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
     ['c-name', 'c-phone', 'c-address', 'c-notes'].forEach(id => document.getElementById(id).value = '');
-    launchToast("Customer profile created successfully", "success");
+    launchToast("Account setup added successfully to CRM engine data nodes.", "success");
     loadCustomerDirectory();
 }
 
-async function deleteCustomer(id) {
-    if(confirm("Permanently wipe this ledger profile? This removes all associated invoices.")) {
-        await fetch(`/api/customers/${id}`, { method: 'DELETE' });
-        loadCustomerDirectory();
-    }
-}
-
-// Inventory Layer
+// Warehouse Inventory Asset Class Core Operations
 async function loadStockInventoryTable() {
     const data = await (await fetch('/api/inventory')).json();
-    globalInventoryRegistry = data; 
-    const tbody = document.querySelector('#table-inv tbody');
-    tbody.innerHTML = data.map(i => `
-        <tr class="${i.alert ? 'bg-rose-500/5' : ''}">
-            <td class="p-4 font-bold">${i.name}</td>
-            <td class="p-4 font-mono text-xs opacity-70">${i.sku}</td>
-            <td class="p-4 font-semibold">${i.stock_qty} units</td>
-            <td class="p-4">₹${i.cost_price.toFixed(2)}</td>
-            <td class="p-4">₹${i.selling_price.toFixed(2)}</td>
-            <td class="p-4">${i.alert ? '<span class="text-xs bg-rose-500/20 text-rose-400 px-2.5 py-1 rounded-full font-bold">STOCK SHORTAGE</span>' : '<span class="text-xs bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full font-bold">NOMINAL STOCK</span>'}</td>
+    globalInventoryRegistry = data;
+    document.querySelector('#table-inv tbody').innerHTML = data.map(i => `
+        <tr class="${i.alert ? 'bg-rose-500/5 animate-pulse' : ''} hover:bg-white/5 transition border-b border-white/5">
+            <td class="p-4 font-black">${i.name}</td>
+            <td class="p-4 font-mono text-xs text-emerald-400 font-bold">${i.sku}</td>
+            <td class="p-4 font-bold text-slate-200">${i.stock_qty} units</td>
+            <td class="p-4 opacity-70">₹${i.cost_price.toFixed(2)}</td>
+            <td class="p-4 font-semibold text-cyan-400">₹${i.selling_price.toFixed(2)}</td>
+            <td class="p-4">${i.alert ? '<span class="text-[10px] bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded font-black">SHORTAGE DETECTED</span>' : '<span class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-black">NOMINAL STATUS</span>'}</td>
         </tr>`).join('');
+}
+
+async function updateInventoryDropdownSelectors() {
+    const data = await (await fetch('/api/inventory')).json();
+    const sel = document.getElementById('adj-product-sel');
+    if(sel) {
+        sel.innerHTML = '<option value="">Target Inventory Pipeline Item...</option>';
+        data.forEach(i => sel.innerHTML += `<option value="${i.id}">${i.name} [SKU: ${i.sku}] (Current: ${i.stock_qty})</option>`);
+    }
 }
 
 async function addInventory() {
     const payload = {
         name: document.getElementById('i-name').value, sku: document.getElementById('i-sku').value,
-        stock_qty: parseInt(document.getElementById('i-qty').value), min_stock: parseInt(document.getElementById('i-min').value),
-        cost_price: parseFloat(document.getElementById('i-cost').value), selling_price: parseFloat(document.getElementById('i-sell').value)
+        stock_qty: parseInt(document.getElementById('i-qty').value) || 0, min_stock: parseInt(document.getElementById('i-min').value) || 0,
+        cost_price: parseFloat(document.getElementById('i-cost').value) || 0, selling_price: parseFloat(document.getElementById('i-sell').value) || 0
     };
-    await fetch('/api/inventory', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-    launchToast("Stock catalog verified and saved", "success");
-    ['i-name', 'i-sku', 'i-qty', 'i-min', 'i-cost', 'i-sell'].forEach(id => document.getElementById(id).value = '');
-    loadStockInventoryTable();
+    const res = await fetch('/api/inventory', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+    if(res.ok) {
+        launchToast("Asset item class catalog verification valid and saved.", "success");
+        ['i-name', 'i-sku', 'i-qty', 'i-min', 'i-cost', 'i-sell'].forEach(id => document.getElementById(id).value = '');
+        loadStockInventoryTable();
+        updateInventoryDropdownSelectors();
+    } else {
+        launchToast("Error logging class tracking index node parameters.", "error");
+    }
 }
 
-// Invoices Layer
+async function submitInventoryAdjustment() {
+    const payload = {
+        product_id: document.getElementById('adj-product-sel').value, type: document.getElementById('adj-type').value,
+        quantity: parseInt(document.getElementById('adj-qty').value) || 0, reference: document.getElementById('adj-ref').value
+    };
+    if(!payload.product_id || !payload.quantity) return launchToast("Missing alignment structural inputs", "error");
+    await fetch('/api/inventory/adjust', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+    launchToast("Warehouse adjustment executed and saved successfully", "success");
+    document.getElementById('adj-qty').value = '';
+    document.getElementById('adj-ref').value = '';
+    loadStockInventoryTable();
+    updateInventoryDropdownSelectors();
+}
+
+// Commercial Invoicing & Trading Calculations
 async function loadTransactionalPrerequisites() {
     const custs = await (await fetch('/api/customers')).json();
     await loadStockInventoryTable(); 
 
     const cSel = document.getElementById('tx-cust-sel');
-    cSel.innerHTML = '<option value="">Target Account Selection...</option>';
+    cSel.innerHTML = '<option value="">Target Client Master Account Selection...</option>';
     custs.forEach(c => cSel.innerHTML += `<option value="${c.id}">${c.name}</option>`);
 
     const iSel = document.getElementById('tx-inv-sel');
-    iSel.innerHTML = '<option value="">Product Selection...</option>';
-    globalInventoryRegistry.forEach(i => iSel.innerHTML += `<option value="${i.id}">${i.name} (In Stock: ${i.stock_qty})</option>`);
+    iSel.innerHTML = '<option value="">Warehouse Stock Asset Selection...</option>';
+    globalInventoryRegistry.forEach(i => iSel.innerHTML += `<option value="${i.id}">${i.name} (Qty Available: ${i.stock_qty})</option>`);
 }
 
 function autoFillPrice() {
     const pid = document.getElementById('tx-inv-sel').value;
     const match = globalInventoryRegistry.find(x => x.id == pid);
-    if(match) {
+    if (match) {
         document.getElementById('tx-rate-input').value = match.selling_price;
         document.getElementById('tx-qty-input').value = 1;
         runTaxEngine();
@@ -241,124 +281,92 @@ function runTaxEngine() {
 async function commitTransaction() {
     const payload = {
         customer_id: document.getElementById('tx-cust-sel').value, product_id: document.getElementById('tx-inv-sel').value,
-        date: document.getElementById('tx-date').value, quantity: parseInt(document.getElementById('tx-qty-input').value),
-        rate: parseFloat(document.getElementById('tx-rate-input').value), discount: parseFloat(document.getElementById('tx-disc-input').value) || 0,
-        gst: parseFloat(document.getElementById('tx-gst-input').value) || 0, cess: parseFloat(document.getElementById('tx-cess-input').value) || 0,
+        date: document.getElementById('tx-date').value, due_date: document.getElementById('tx-due-date').value,
+        quantity: parseInt(document.getElementById('tx-qty-input').value) || 0, rate: parseFloat(document.getElementById('tx-rate-input').value) || 0,
+        discount: parseFloat(document.getElementById('tx-disc-input').value) || 0, gst: parseFloat(document.getElementById('tx-gst-input').value) || 0,
+        cess: parseFloat(document.getElementById('tx-cess-input').value) || 0, payment_status: document.getElementById('tx-pay-status').value,
         grand_total: runTaxEngine()
     };
     
-    if(!payload.customer_id || !payload.product_id || !payload.quantity) return launchToast("Incomplete criteria form inputs", "error");
+    if(!payload.customer_id || !payload.product_id || !payload.quantity) return launchToast("Missing fields criteria form details.", "error");
 
     const response = await fetch('/api/transactions', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
     if(response.ok) {
-        launchToast("Invoice posted and catalog balanced", "success");
+        launchToast("Outbound commercial trade document logged and finalized.", "success");
         ['tx-qty-input', 'tx-rate-input', 'tx-disc-input', 'tx-gst-input', 'tx-cess-input'].forEach(id => document.getElementById(id).value = '');
         loadInvoicesTable();
     } else {
-        const errorMsg = await response.json();
-        launchToast(errorMsg.error || "Execution fault", "error");
+        const err = await response.json();
+        launchToast(err.error || "Execution structural framework fault.", "error");
     }
 }
 
 async function loadInvoicesTable() {
     const data = await (await fetch('/api/transactions')).json();
-    document.querySelector('#table-tx tbody').innerHTML = data.map(t => `
-        <tr>
-            <td class="p-4 font-mono text-xs">${t.date}</td>
-            <td class="p-4 font-bold">${t.customer_name}</td>
-            <td class="p-4">${t.product_name || 'Legacy Deletion Item'} <span class="text-xs opacity-60">x ${t.quantity}</span></td>
-            <td class="p-4 font-semibold text-cyan-400">₹${t.grand_total.toFixed(2)}</td>
-            <td class="p-4 text-emerald-400 font-mono">+₹${t.profit.toFixed(2)}</td>
-            <td class="p-4 no-print"><button onclick="voidInvoice(${t.id})" class="text-rose-500 text-xs font-bold hover:underline">VOID</button></td>
-        </tr>`).join('');
+    const today = new Date();
+    
+    document.querySelector('#table-tx tbody').innerHTML = data.map(t => {
+        const dueDateObj = new Date(t.due_date);
+        const timeDiff = dueDateObj - today;
+        const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+        
+        let maturityBadge = '';
+        if(t.payment_status === 'Fully Paid') {
+            maturityBadge = `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded text-[10px] font-bold">SETTLED</span>`;
+        } else if (daysRemaining < 0) {
+            maturityBadge = `<span class="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-0.5 rounded text-[10px] font-black">OVERDUE (${Math.abs(daysRemaining)}d ago)</span>`;
+        } else {
+            maturityBadge = `<span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded text-[10px] font-bold">DUE (${daysRemaining}d left)</span>`;
+        }
+
+        return `
+        <tr class="hover:bg-white/5 transition border-b border-white/5">
+            <td class="p-4 font-mono text-xs"><div class="font-black text-slate-100">${t.invoice_no}</div><div class="opacity-50 text-[10px]">Issued: ${t.date}</div></td>
+            <td class="p-4 font-bold text-slate-300">${t.customer_name}</td>
+            <td class="p-4 text-xs">${t.product_name || 'Asset Deleted'} <span class="opacity-50">x${t.quantity}</span></td>
+            <td class="p-4 font-mono font-bold text-cyan-400">₹${t.grand_total.toFixed(2)}</td>
+            <td class="p-4">${maturityBadge}</td>
+            <td class="p-4 no-print text-right">
+                ${localUserSessionContext.role === 'Admin' ? `<button onclick="voidInvoice(${t.id})" class="px-2 py-1 text-rose-500 hover:bg-rose-500/10 rounded-lg text-xs font-bold transition">VOID</button>` : '-'}
+            </td>
+        </tr>`;
+    }).join('');
 }
 
 async function voidInvoice(id) {
-    if(confirm("Void this trade transaction? Stock levels will be added back into inventory.")) {
+    if(confirm("Confirm severe administrative action: Void transaction invoice? Base stock reserves will be re-credited into physical inventory storage mapping points.")) {
         await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
         loadInvoicesTable();
     }
 }
 
-// Expenses Layer
+// Operating Expenses Controller Layer
 async function loadExpenseTable() {
     const data = await (await fetch('/api/expenses')).json();
     document.querySelector('#table-exp tbody').innerHTML = data.map(e => `
-        <tr>
-            <td class="p-4 font-mono text-xs">${e.date}</td>
-            <td class="p-4 font-bold">${e.title}</td>
-            <td class="p-4"><span class="text-xs px-2.5 py-1 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20">${e.category}</span></td>
-            <td class="p-4 text-rose-400 font-semibold">-₹${e.amount.toFixed(2)}</td>
+        <tr class="hover:bg-white/5 transition border-b border-white/5">
+            <td class="p-4 font-mono text-xs opacity-60">${e.date}</td>
+            <td class="p-4 font-bold text-slate-200">${e.title}</td>
+            <td class="p-4"><span class="text-[10px] uppercase font-bold tracking-wider px-2.5 py-1 rounded bg-rose-500/10 text-rose-400 border border-rose-500/10">${e.category}</span></td>
+            <td class="p-4 text-rose-400 font-bold font-mono">-₹${e.amount.toFixed(2)}</td>
         </tr>`).join('');
 }
 
 async function addExpense() {
     const payload = {
         title: document.getElementById('e-title').value, category: document.getElementById('e-cat').value,
-        amount: parseFloat(document.getElementById('e-amt').value), date: document.getElementById('e-date').value, notes: ''
+        amount: parseFloat(document.getElementById('e-amt').value) || 0, date: document.getElementById('e-date').value, notes: ''
     };
-    if(!payload.title || !payload.amount) return launchToast("Incomplete expense form items", "error");
+    if (!payload.title || !payload.amount) return launchToast("Aborted: Incomplete expense voucher entry data fields.", "error");
     await fetch('/api/expenses', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-    launchToast("Debit recorded against operating margin profile", "info");
+    launchToast("Operational capital expense recorded against margin parameters.", "info");
     document.getElementById('e-title').value = '';
     document.getElementById('e-amt').value = '';
     loadExpenseTable();
 }
 
-// Customer Isolated Ledger System
-async function launchCustomerLedgerPanel(id, name, phone) {
-    activeCustomerId = id;
-    document.querySelectorAll('.stage').forEach(el => el.classList.add('hidden'));
-    document.getElementById('view-ledger-panel').classList.remove('hidden');
-    document.getElementById('ledger-title-header').innerText = `Statement Profile: ${name}`;
-    
-    // WhatsApp Formatting Link
-    document.getElementById('wa-link').href = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=Dear%20customer,%20please%20review%20your%20current%20outstanding%20statement%20of%20accounts.`;
-    
-    const data = await (await fetch(`/api/customers/${id}/history`)).json();
-    let trackingLiability = 0;
-    
-    document.querySelector('#table-ledger tbody').innerHTML = data.map(r => {
-        trackingLiability += (r.debit - r.credit);
-        return `
-            <tr>
-                <td class="p-4 font-mono text-xs opacity-70">${r.date}</td>
-                <td class="p-4"><span class="px-2 py-0.5 rounded text-xs font-bold ${r.type==='Invoice'?'bg-blue-500/10 text-blue-400':'bg-emerald-500/10 text-emerald-400'}">${r.type}</span></td>
-                <td class="p-4 font-medium">${r.details}</td>
-                <td class="p-4 text-rose-400 font-mono">${r.debit > 0 ? '₹'+r.debit.toFixed(2) : '-'}</td>
-                <td class="p-4 text-emerald-400 font-mono">${r.credit > 0 ? '₹'+r.credit.toFixed(2) : '-'}</td>
-                <td class="p-4 font-bold ${trackingLiability > 0 ? 'text-rose-400' : 'text-slate-300'}">₹${trackingLiability.toFixed(2)}</td>
-            </tr>`;
-    }).join('');
-}
-
-async function submitLedgerPayment() {
-    const payload = {
-        customer_id: activeCustomerId, amount: parseFloat(document.getElementById('ledger-pay-amt').value),
-        date: new Date().toISOString().split('T')[0], method: document.getElementById('ledger-pay-method').value
-    };
-    if(!payload.amount) return launchToast("Enter a collection value amount", "error");
-    await fetch('/api/payments', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-    launchToast("Credit payment balanced successfully", "success");
-    document.getElementById('ledger-pay-amt').value = '';
-    nav('customers'); 
-}
-
-// CSV Universal Matrix Generator
-function exportTableToCSV(tableId, targetFilename) {
-    const table = document.getElementById(tableId);
-    let rows = [];
-    for (let r of table.rows) {
-        let cols = [];
-        for (let cell of r.cells) {
-            if(!cell.classList.contains('no-print')) {
-                cols.push('"' + cell.innerText.replace(/"/g, '""') + '"');
-            }
-        }
-        rows.push(cols.join(","));
-    }
-    const universalLink = document.createElement("a");
-    universalLink.href = "data:text/csv;charset=utf-8," + encodeURI(rows.join("\n"));
-    universalLink.download = `${targetFilename}_generation_${new Date().getTime()}.csv`;
-    universalLink.click();
-}
+// System Audit Streaming Matrix Logs 
+async function loadAuditLogsTable() {
+    const data = await (await fetch('/api/audit')).json();
+    document.querySelector('#table-audit tbody').innerHTML = data.map(a => `
+        <tr class="border-b border-white
