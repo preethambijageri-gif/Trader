@@ -1,7 +1,7 @@
 {
-  "name": "premium-saas-ledger",
-  "version": "2.0.0",
-  "description": "Premium Business Management and Trading Dashboard",
+  "name": "enterprise-trading-ledger",
+  "version": "3.0.0",
+  "description": "Advanced Business Management, Inventory, and Trading Engine",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
