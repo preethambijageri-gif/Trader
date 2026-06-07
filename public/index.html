@@ -3,217 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise Trading Ledger OS</title>
+    <title>Trader OS | Management Interface</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .glass {
-            background: rgba(255, 255, 255, 0.02);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-        html[data-theme="light"] {
-            --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-            --card-bg: rgba(255, 255, 255, 0.75);
-            --text-color: #0f172a;
-        }
-        html[data-theme="dark"] {
-            --bg-gradient: linear-gradient(135deg, #090d16 0%, #020408 100%);
-            --card-bg: rgba(13, 20, 35, 0.6);
-            --text-color: #f8fafc;
-        }
-        body { background: var(--bg-gradient); color: var(--text-color); transition: all 0.2s ease; }
-        @media print { .no-print { display: none !important; } .print-area { width: 100%; border:none; background:white; color:black; } }
+        :root[data-theme="dark"] { background-color: #0f172a; color: #f8fafc; }
+        :root[data-theme="light"] { background-color: #f8fafc; color: #0f172a; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); }
+        .custom-input { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: inherit; width: 100%; padding: 0.75rem; border-radius: 0.5rem; outline: none; transition: border-color 0.3s; }
+        .custom-input:focus { border-color: #3b82f6; }
     </style>
 </head>
-<body class="min-h-screen font-sans antialiased">
+<body class="h-screen w-screen overflow-hidden flex font-sans text-sm">
 
-    <div id="toast-box" class="fixed top-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+    <div id="toast-box" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-    <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-3xl">
-        <div class="w-full max-w-md p-8 rounded-2xl glass bg-slate-900/40 shadow-2xl border border-white/5">
-            <div class="flex flex-col items-center mb-8">
-                <div class="p-4 bg-blue-500/10 text-blue-400 rounded-full text-3xl mb-3"><i class="fa-solid fa-shield-halved"></i></div>
-                <h2 class="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-emerald-400">LEDGER GATEWAY</h2>
-                <p class="text-xs text-slate-400 mt-1">Enterprise Trading Control Workspace</p>
-            </div>
-            <div class="space-y-4">
+    <div id="login-screen" class="absolute inset-0 flex items-center justify-center bg-slate-900 z-40">
+        <div class="glass p-10 rounded-2xl shadow-2xl w-96 text-center border border-white/10">
+            <div class="text-blue-500 text-4xl mb-4"><i class="fa-solid fa-server"></i></div>
+            <h1 class="text-3xl font-black text-white mb-2">Trader OS</h1>
+            <p class="text-slate-400 text-sm mb-8">Secure System Authentication</p>
+            
+            <div class="space-y-4 text-left">
                 <div>
-                    <label class="text-xs font-bold tracking-wider uppercase opacity-60 block mb-1">Security Username</label>
-                    <input type="text" id="username" placeholder="admin" class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:border-blue-500 transition">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Username</label>
+                    <input type="text" id="username" class="custom-input mt-1" placeholder="admin">
                 </div>
                 <div>
-                    <label class="text-xs font-bold tracking-wider uppercase opacity-60 block mb-1">Access Token Password</label>
-                    <input type="password" id="password" placeholder="admin123" class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:border-blue-500 transition">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Password</label>
+                    <input type="password" id="password" class="custom-input mt-1" placeholder="••••••••">
                 </div>
-                <button onclick="login()" class="w-full py-3.5 mt-4 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 text-white rounded-xl font-bold tracking-wide shadow-xl hover:opacity-95 transition">Authorize Handshake</button>
+                
+                <button type="button" onclick="login()" class="w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-blue-500/30">
+                    <i class="fa-solid fa-right-to-bracket mr-2"></i> Secure Login
+                </button>
             </div>
         </div>
     </div>
 
-    <div id="app-screen" class="flex flex-col lg:flex-row min-h-screen" style="display: none;">
+    <div id="app-screen" class="flex h-full w-full" style="display: none;">
         
-        <aside class="w-full lg:w-72 glass bg-slate-950/50 p-6 flex flex-col gap-6 no-print border-r border-white/5">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
-                    <span class="text-lg font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">METRIC OS v3</span>
-                </div>
-                <button onclick="toggleTheme()" class="p-2.5 rounded-xl hover:bg-white/5 transition"><i class="fa-solid fa-circle-half-stroke text-purple-400"></i></button>
-            </div>
-
-            <div class="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center font-bold text-white uppercase shadow-md" id="user-badge">?</div>
-                <div>
-                    <div class="font-bold text-sm" id="user-display-name">Loading Profile...</div>
-                    <div class="text-xs opacity-50 font-medium" id="user-display-role">Permissions...</div>
-                </div>
-            </div>
-
-            <div class="relative">
-                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-xs opacity-40"></i>
-                <input type="text" id="global-search-input" onkeyup="triggerGlobalSearch()" placeholder="Omni Global Lookup..." class="w-full pl-9 pr-4 py-2.5 bg-black/30 border border-white/5 rounded-xl text-xs focus:outline-none focus:border-blue-500 text-white">
-            </div>
-
-            <nav class="flex flex-col gap-1 space-y-1 flex-grow">
-                <button onclick="nav('dashboard')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-chart-pie w-5 text-blue-400"></i> Analytics Engine</button>
-                <button onclick="nav('customers')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-address-book w-5 text-purple-400"></i> CRM Directories</button>
-                <button onclick="nav('inventory')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-warehouse w-5 text-emerald-400"></i> Stock & Assets</button>
-                <button onclick="nav('transactions')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-receipt w-5 text-amber-400"></i> Trade Invoices</button>
-                <button onclick="nav('expenses')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-wallet w-5 text-rose-400"></i> Core Expenses</button>
-                <button onclick="nav('audit')" id="nav-audit-btn" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 font-medium transition text-left"><i class="fa-solid fa-fingerprint w-5 text-indigo-400"></i> System Audits</button>
-            </nav>
-
-            <button onclick="logout()" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-rose-500/10 text-rose-400 font-bold transition text-left border border-transparent hover:border-rose-500/20"><i class="fa-solid fa-power-off w-5"></i> Kill Session Context</button>
-        </aside>
-
-        <main class="flex-grow p-6 lg:p-10 overflow-x-hidden print-area">
-            
-            <section id="view-dashboard" class="space-y-8 stage">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="w-64 glass border-r border-white/10 flex flex-col justify-between p-4 flex-shrink-0">
+            <div>
+                <div class="flex items-center gap-3 mb-8 px-2">
+                    <div id="user-badge" class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-black text-white uppercase shadow-lg shadow-blue-500/30"></div>
                     <div>
-                        <h1 class="text-3xl font-black tracking-tight">Analytics Command Center</h1>
-                        <p class="text-xs opacity-50 mt-0.5">Real-time operational overview and structural risk assessment</p>
-                    </div>
-                    <div class="flex items-center gap-2 no-print">
-                        <button onclick="exportFullDatabaseBackup()" id="admin-backup-btn" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold transition border border-white/5"><i class="fa-solid fa-cloud-arrow-down mr-1"></i> Dump Vault Backup</button>
-                        <label id="admin-restore-lbl" class="px-4 py-2.5 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white rounded-xl text-xs font-bold transition border border-blue-500/20 cursor-pointer">
-                            <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Safe Load Restore
-                            <input type="file" id="backup-file-picker" accept=".db" onchange="importFullDatabaseBackup(event)" class="hidden">
-                        </label>
+                        <div id="user-display-name" class="font-bold text-white leading-tight">User</div>
+                        <div id="user-display-role" class="text-[10px] text-blue-400 font-bold uppercase tracking-wide">Role</div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div class="glass p-5 rounded-xl bg-gradient-to-br from-blue-500/5 to-transparent">
-                        <div class="flex justify-between items-center opacity-50 text-xs font-bold tracking-wider uppercase mb-2">Today's Revenue</div>
-                        <div class="text-2xl font-black tracking-tight text-blue-400" id="db-today-sales">₹0.00</div>
-                    </div>
-                    <div class="glass p-5 rounded-xl bg-gradient-to-br from-cyan-500/5 to-transparent">
-                        <div class="flex justify-between items-center opacity-50 text-xs font-bold tracking-wider uppercase mb-2">Today's Profit</div>
-                        <div class="text-2xl font-black tracking-tight text-cyan-400" id="db-today-profit">₹0.00</div>
-                    </div>
-                    <div class="glass p-5 rounded-xl bg-gradient-to-br from-emerald-500/5 to-transparent">
-                        <div class="flex justify-between items-center opacity-50 text-xs font-bold tracking-wider uppercase mb-2">Net Accumulation</div>
-                        <div class="text-2xl font-black tracking-tight text-emerald-400" id="db-total-profit">₹0.00</div>
-                    </div>
-                    <div class="glass p-5 rounded-xl bg-gradient-to-br from-rose-500/5 to-transparent">
-                        <div class="flex justify-between items-center opacity-50 text-xs font-bold tracking-wider uppercase mb-2">Outstanding Dues</div>
-                        <div class="text-2xl font-black tracking-tight text-rose-400" id="db-pending-dues">₹0.00</div>
-                    </div>
-                    <div class="glass p-5 rounded-xl bg-gradient-to-br from-amber-500/5 to-transparent">
-                        <div class="flex justify-between items-center opacity-50 text-xs font-bold tracking-wider uppercase mb-2">System Risk Alerts</div>
-                        <div class="text-xs font-bold space-y-1 mt-1 text-amber-400">
-                            <div id="db-alert-stock"><i class="fa-solid fa-box mr-1"></i> 0 Low Stock Items</div>
-                            <div id="db-alert-overdue"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 0 Overdue Profiles</div>
+                <nav class="space-y-2">
+                    <button onclick="nav('dashboard')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-white/10 transition font-medium flex items-center gap-3"><i class="fa-solid fa-chart-line w-5 text-center"></i> Dashboard</button>
+                    <button onclick="nav('transactions')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-white/10 transition font-medium flex items-center gap-3"><i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i> Invoices</button>
+                    <button onclick="nav('customers')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-white/10 transition font-medium flex items-center gap-3"><i class="fa-solid fa-users w-5 text-center"></i> CRM / Ledger</button>
+                    <button onclick="nav('inventory')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-white/10 transition font-medium flex items-center gap-3"><i class="fa-solid fa-boxes-stacked w-5 text-center"></i> Inventory</button>
+                    <button onclick="nav('expenses')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-white/10 transition font-medium flex items-center gap-3"><i class="fa-solid fa-receipt w-5 text-center"></i> Expenses</button>
+                    
+                    <button id="nav-audit-btn" onclick="nav('audit')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-white/10 transition font-medium flex items-center gap-3 text-rose-400"><i class="fa-solid fa-shield-halved w-5 text-center"></i> Audit Logs</button>
+                </nav>
+            </div>
+
+            <div class="space-y-2">
+                <button onclick="toggleTheme()" class="w-full text-left px-4 py-2 rounded-lg hover:bg-white/10 transition text-xs opacity-70"><i class="fa-solid fa-circle-half-stroke mr-2"></i> Toggle Theme</button>
+                <button onclick="logout()" class="w-full text-left px-4 py-2 rounded-lg hover:bg-rose-500/20 text-rose-400 transition text-xs font-bold"><i class="fa-solid fa-power-off mr-2"></i> Disconnect Session</button>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col overflow-hidden relative">
+            
+            <div class="h-16 glass border-b border-white/10 flex items-center justify-between px-8 flex-shrink-0">
+                <div class="relative w-96">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 opacity-50"></i>
+                    <input type="text" id="global-search-input" onkeyup="triggerGlobalSearch()" placeholder="Omni Search Tables..." class="custom-input pl-10 py-2 !rounded-full !bg-black/20 border-none text-xs">
+                </div>
+                <div class="flex gap-4">
+                    <button id="admin-backup-btn" onclick="exportFullDatabaseBackup()" class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-4 py-2 rounded-full font-bold hover:bg-emerald-500 hover:text-white transition"><i class="fa-solid fa-download mr-1"></i> Export Vault</button>
+                    <label id="admin-restore-lbl" class="cursor-pointer text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20 px-4 py-2 rounded-full font-bold hover:bg-rose-500 hover:text-white transition">
+                        <i class="fa-solid fa-upload mr-1"></i> Restore Vault
+                        <input type="file" class="hidden" accept=".json,.db" onchange="importFullDatabaseBackup(event)">
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-8 relative">
+
+                <div id="view-dashboard" class="stage hidden space-y-6">
+                    <h2 class="text-2xl font-black">Analytical Matrix</h2>
+                    <div class="grid grid-cols-4 gap-6">
+                        <div class="glass p-5 rounded-2xl border border-white/5">
+                            <div class="text-slate-400 text-xs font-bold uppercase mb-1">Today's Revenue</div>
+                            <div id="db-today-sales" class="text-2xl font-black text-blue-400">₹0.00</div>
+                        </div>
+                        <div class="glass p-5 rounded-2xl border border-white/5">
+                            <div class="text-slate-400 text-xs font-bold uppercase mb-1">Today's Profit</div>
+                            <div id="db-today-profit" class="text-2xl font-black text-emerald-400">₹0.00</div>
+                        </div>
+                        <div class="glass p-5 rounded-2xl border border-white/5">
+                            <div class="text-slate-400 text-xs font-bold uppercase mb-1">Total Vault Profit</div>
+                            <div id="db-total-profit" class="text-2xl font-black text-emerald-500">₹0.00</div>
+                        </div>
+                        <div class="glass p-5 rounded-2xl border border-white/5">
+                            <div class="text-slate-400 text-xs font-bold uppercase mb-1">Market Receivables</div>
+                            <div id="db-pending-dues" class="text-2xl font-black text-amber-400">₹0.00</div>
                         </div>
                     </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="glass p-5 rounded-2xl lg:col-span-2"><h4 class="mb-4 text-xs font-bold uppercase tracking-wider opacity-60">Revenue vs Structural Profit Scaling</h4><div class="h-64"><canvas id="canvas-sales"></canvas></div></div>
-                    <div class="glass p-5 rounded-2xl"><h4 class="mb-4 text-xs font-bold uppercase tracking-wider opacity-60">Inventory Allocation Breakdown</h4><div class="h-64"><canvas id="canvas-products"></canvas></div></div>
-                </div>
-            </section>
-
-            <section id="view-customers" class="space-y-6 stage hidden">
-                <div class="glass p-6 rounded-2xl space-y-4 no-print border border-purple-500/10">
-                    <h3 class="text-md font-black tracking-wide"><i class="fa-solid fa-user-plus text-purple-400 mr-2"></i>Provision CRM Customer Account Record</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input type="text" id="c-name" placeholder="Legal Account Corporate Title" class="bg-black/30 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white">
-                        <input type="text" id="c-phone" placeholder="Active Phone (Country Code Required)" class="bg-black/30 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white">
-                        <input type="text" id="c-address" placeholder="Physical Operational Base Address" class="bg-black/30 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-purple-500 text-white">
-                    </div>
-                    <textarea id="c-notes" placeholder="Internal parameters, lines of credit notes, operational notes..." class="w-full bg-black/30 border border-white/10 rounded-xl p-3 h-20 text-sm focus:outline-none focus:border-purple-500 text-white"></textarea>
-                    <button onclick="addCustomer()" class="px-6 py-3 bg-purple-600 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-purple-700 transition">Commit Profile Matrix</button>
-                </div>
-
-                <div class="flex justify-between items-center no-print">
-                    <h2 class="text-xl font-bold tracking-tight">Active Profiles Directory</h2>
-                    <button onclick="exportTableToCSV('table-cust', 'crm-profiles')" class="px-3 py-1.5 bg-slate-800 rounded-lg text-xs font-bold border border-white/5">Export Registry (.CSV)</button>
-                </div>
-                <div class="overflow-x-auto rounded-2xl glass">
-                    <table id="table-cust" class="w-full text-left border-collapse">
-                        <thead class="bg-white/5 text-xs font-bold tracking-wider uppercase opacity-60 border-b border-white/5">
-                            <tr><th class="p-4">Reference Identity</th><th class="p-4">Profile Name</th><th class="p-4">Contact Protocol</th><th class="p-4">Physical Destination</th><th class="p-4 no-print text-right">Actions</th></tr>
-                        </thead>
-                        <tbody class="divide-y divide-white/5 text-sm"></tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section id="view-inventory" class="space-y-6 stage hidden">
-                <div class="glass p-6 rounded-2xl space-y-4 no-print border border-emerald-500/10">
-                    <h3 class="text-md font-black tracking-wide"><i class="fa-solid fa-boxes-packing text-emerald-400 mr-2"></i>Inbound Warehouse Asset Class Catalogue Entry</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                        <input type="text" id="i-name" placeholder="Asset Identifier Title" class="bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
-                        <input type="text" id="i-sku" placeholder="SKU Signature Code" class="bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
-                        <input type="number" id="i-qty" placeholder="Base Quantity" class="bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
-                        <input type="number" id="i-min" placeholder="Minimum Level Alert" class="bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
-                        <input type="number" id="i-cost" placeholder="Unit Cost Price (₹)" class="bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
-                        <input type="number" id="i-sell" placeholder="Unit Base Retail (₹)" class="bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
-                    </div>
-                    <button onclick="addInventory()" class="px-6 py-3 bg-emerald-600 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-emerald-700 transition">Register Asset Class</button>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 no-print">
-                    <div class="glass p-5 rounded-2xl space-y-3 border border-emerald-500/10 lg:col-span-1">
-                        <h4 class="text-xs font-bold uppercase tracking-wider opacity-60">Inventory Intervention Matrix</h4>
-                        <select id="adj-product-sel" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white"></select>
-                        <div class="grid grid-cols-2 gap-2">
-                            <select id="adj-type" class="bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white">
-                                <option value="IN">Stock In (+)</option>
-                                <option value="OUT">Stock Out (-)</option>
-                            </select>
-                            <input type="number" id="adj-qty" placeholder="Adjustment Qty" class="bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
+                    
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="glass p-5 rounded-2xl border border-white/5 h-80">
+                            <canvas id="canvas-sales"></canvas>
                         </div>
-                        <input type="text" id="adj-ref" placeholder="Audit documentation tracking note..." class="w-full bg-black/30 border border-white/10 rounded-xl p-2.5 text-xs text-white">
-                        <button onclick="submitInventoryAdjustment()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs transition border border-white/5">Execute Warehouse Balancing</button>
+                        <div class="glass p-5 rounded-2xl border border-white/5 h-80">
+                            <canvas id="canvas-products"></canvas>
+                        </div>
                     </div>
-                    <div class="overflow-x-auto rounded-2xl glass md:col-span-2">
-                        <table id="table-inv" class="w-full text-left border-collapse">
-                            <thead class="bg-white/5 text-xs uppercase opacity-60 border-b border-white/5">
-                                <tr><th class="p-4">Asset Class Title</th><th class="p-4">SKU Identity</th><th class="p-4">On Hand Stock</th><th class="p-4">Cost Value</th><th class="p-4">Target Retail</th><th class="p-4">Operational Status</th></tr>
+
+                    <div class="flex gap-4">
+                        <div id="db-alert-stock" class="px-4 py-2 bg-rose-500/10 text-rose-400 rounded-lg text-xs font-bold border border-rose-500/20"></div>
+                        <div id="db-alert-overdue" class="px-4 py-2 bg-amber-500/10 text-amber-400 rounded-lg text-xs font-bold border border-amber-500/20"></div>
+                    </div>
+                </div>
+
+                <div id="view-customers" class="stage hidden">
+                    <div class="flex justify-between items-end mb-6">
+                        <h2 class="text-2xl font-black">CRM Directory</h2>
+                    </div>
+                    <div class="glass p-5 rounded-2xl border border-white/5 mb-6 grid grid-cols-5 gap-4">
+                        <input type="text" id="c-name" class="custom-input" placeholder="Client Name">
+                        <input type="text" id="c-phone" class="custom-input" placeholder="Contact/WhatsApp">
+                        <input type="text" id="c-address" class="custom-input col-span-2" placeholder="Physical Address">
+                        <button onclick="addCustomer()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition">Register Client</button>
+                    </div>
+                    <div class="glass rounded-2xl border border-white/5 overflow-hidden">
+                        <table id="table-cust" class="w-full text-left">
+                            <thead class="bg-black/20 text-xs uppercase text-slate-400">
+                                <tr><th class="p-4">ID</th><th class="p-4">Entity</th><th class="p-4">Contact</th><th class="p-4">Address</th><th class="p-4 text-right">Actions</th></tr>
                             </thead>
-                            <tbody class="divide-y divide-white/5 text-xs"></tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                 </div>
-            </section>
 
-            <section id="view-transactions" class="space-y-6 stage hidden">
-                <div class="glass p-6 rounded-2xl space-y-4 no-print border border-amber-500/10">
-                    <h3 class="text-md font-black tracking-wide"><i class="fa-solid fa-file-signature text-amber-400 mr-2"></i>Generate Commercial Outbound Settlement Invoice</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                        <select id="tx-cust-sel" class="bg-slate-900 border border-white/10 rounded-xl p-3 text-xs text-white"></select>
-                        <select id="tx-inv-sel" onchange="autoFillPrice()" class="bg-slate-900 border border-white/10 rounded-xl p-3 text-xs text-white"></select>
-                        <input type="date" id="tx-date" class="bg-black/30 border border-white/10 rounded-xl p-3 text-xs text-white">
-                        <input type="date" id="tx-due-date" class="bg-black/30 border border-white/10 rounded-xl p-3 text-xs text-white">
-                        <input type="number" id="tx-qty-input" placeholder="Quantity Invoiced" oninput="runTaxEngine()" class="bg-black/30 border border-white/10 rounded-xl p-3 text-xs text-white">
+                <div id="view-inventory" class="stage hidden">
+                    <h2 class="text-2xl font-black mb-6">Warehouse Asset Index</h2>
+                    <div class="glass p-5 rounded-2xl border border-white/5 mb-6 grid grid-cols-7 gap-4 items-end">
+                        <div class="col-span-2"><label class="text-[10px] text-slate-400 font-bold uppercase">Asset Name</label><input type="text" id="i-name" class="custom-input"></div>
+                        <div><label class="text-[10px] text-slate-400 font-bold uppercase">SKU</label><input type="text" id="i-sku" class="custom-input"></div>
+                        <div><label class="text-[10px] text-slate-400 font-bold uppercase">Qty</label><input type="number" id="i-qty" class="custom-input"></div>
+                        <div><label class="text-[10px] text-slate-400 font-bold uppercase">Cost (₹)</label><input type="number" id="i-cost" class="custom-input"></div>
+                        <div><label class="text-[10px] text-slate-400 font-bold uppercase">Sell (₹)</label><input type="number" id="i-sell" class="custom-input"></div>
+                        <button onclick="addInventory()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition h-[42px]">Log Asset</button>
                     </div>
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <input type="number" id="tx-rate-input" placeholder="Custom Price Override (₹)" oninput="runTaxEngine()" class="bg-black/30 border border-white/10 rounded-xl p-3 text-xs text-white">
-                        <input type="number" id="tx-disc-input" placeholder="Trade Discount Deduct (₹)" oninput="runTaxEngine()" class="bg-black/30 border border-white/10 rounded-xl p-3 text-xs text-white">
-                        <input type="number" id="tx-gst-input" placeholder="Integrated IGST (₹)" oninput="runTaxEngine()" class="bg-black/30 border border-white/10 rounded-xl p-3 text-xs text-white">
-                        <input type="number" id="tx-cess-input" placeholder="State/Central Cess (₹)" oninput="runTaxEngine()" class="bg-black/30 border border-white/10 rounded-xl p-
+                    <div class="glass rounded-2xl border border-white/5 overflow-hidden">
+                        <table id="table-inv" class="w-full text-left">
+                            <thead class="bg-black/20 text-xs uppercase text-slate-400">
+                                <tr><th class="p-4">Asset</th><th class="p-4">SKU</th><th class="p-4">Stock</th><th class="p-4">Cost</th><th class="p-4">Price</th><th class="p-4">Status</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="view-transactions" class="stage hidden">
+                    <div class="flex justify-between items-end mb-6">
+                        <h2 class="text-2xl font-black">Trade Invoices</h2>
+                    </div>
+                    <div class="glass p-6 rounded-2xl border border-white/5 mb-6">
+                        <div class="grid grid-cols-4 gap-4 mb-4">
+                            <select id="tx-cust-sel" class="custom-input col-span-2"><option value="">Select CRM Profile...</option></select>
+                            <div><label class="text-[10px] text-slate-400 font-bold uppercase">Issue Date</label><input type="date" id="tx-date" class="custom-input"></div>
+                            <div><label class="text-[10px] text-slate-400 font-bold uppercase">Due Date</label><input type="date" id="tx-due-date" class="custom-input"></div>
+                        </div>
+                        <div class="grid grid-cols-6 gap-4 items-end">
+                            <select id="tx-inv-sel" onchange="autoFillPrice()" class="custom-input col-span-2"><option value="">Select Asset...</option></select>
+                            <div><label class="text-[10px] text-slate-400 font-bold uppercase">Qty</label><input type="number" id="tx-qty-input" class="custom-input" onkeyup="runTaxEngine()"></div>
+                            <div><label class="text-[10px] text-slate-400 font-bold uppercase">Rate</label><input type="number" id="tx-rate-input" class="custom-input" onkeyup="runTaxEngine()"></div>
+                            <div><label class="text-[10px] text-slate-400 font-bold uppercase">Discount</label><input type="number" id="tx-disc-input" class="custom-input" onkeyup="runTaxEngine()"></div>
+                            <div><label class="text-[10px] text-slate-400 font-bold uppercase">GST</label><input type="number" id="tx-gst-input" class="custom-input" onkeyup="runTaxEngine()"></div>
+                            <div><label class="text-[10px] text-slate-400 font-bold uppercase">Cess</label><input type="number" id="tx-cess-input" class="custom-input" onkeyup="runTaxEngine()"></div>
+                            <div><label class="text-[10px] text-slate-400 font-bold uppercase">Status</label>
+                                <select id="tx-pay-status" class="custom-input"><option value="Pending">Pending</option><option value="Fully Paid">Fully Paid</option></select>
+                            </div>
+                            <div class="col-span-2 flex items-center justify-between bg-black/30 px-4 py-2 rounded-lg border border-white/10">
+                                <span class="text-xs font-bold text-slate-400">TOTAL:</span>
+                                <span id="tx-aggregate-lbl" class="text-xl font-black text-emerald-400">₹0.00</span>
+                            </div>
+                            <button onclick="commitTransaction()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition col-span-2">Commit Trade</button>
+                        </div>
+                    </div>
+                    <div class="glass rounded-2xl border border-white/5 overflow-hidden">
+                        <table id="table-tx" class="w-full text-left">
+                            <thead class="bg-black/20 text-xs uppercase text-slate-400">
+                                <tr><th class="p-4">Ref</th><th class="p-4">Client</th><th class="p-4">Asset Matrix</th><th class="p-4">Aggregate</th><th class="p-4">Status</th><th class="p-4 text-right">Actions</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="view-expenses" class="stage hidden">
+                    <h2 class="text-2xl font-black mb-6">Operating Expenses</h2>
+                    <div class="glass p-5 rounded-2xl border border-white/5 mb-6 grid grid-cols-5 gap-4 items-end">
+                        <div><label class="text-[10px] text-slate-400 font-bold uppercase">Date</label><input type="date" id="e-date" class="custom-input"></div>
+                        <div class="col-span-2"><label class="text-[10px] text-slate-400 font-bold uppercase">Expense Description</label><input type="text" id="e-title" class="custom-input"></div>
+                        <div><label class="text-[10px] text-slate-400 font-bold uppercase">Amount</label><input type="number" id="e-amt" class="custom-input"></div>
+                        <button onclick="addExpense()" class="bg-rose-600 hover:bg-rose-500 text-white font-bold py-3 rounded-lg transition">Log Expense</button>
+                    </div>
+                    <div class="glass rounded-2xl border border-white/5 overflow-hidden">
+                        <table id="table-exp" class="w-full text-left">
+                            <thead class="bg-black/20 text-xs uppercase text-slate-400">
+                                <tr><th class="p-4">Date</th><th class="p-4">Description</th><th class="p-4">Category</th><th class="p-4">Capital Outflow</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="view-audit" class="stage hidden">
+                    <h2 class="text-2xl font-black mb-6 text-rose-400">Security & Audit Matrix</h2>
+                    <div class="glass rounded-2xl border border-white/5 overflow-hidden">
+                        <table id="table-audit" class="w-full text-left font-mono text-xs">
+                            <thead class="bg-black/20 uppercase text-slate-500">
+                                <tr><th class="p-3 w-40">Timestamp</th><th class="p-3 w-32">User Node</th><th class="p-3 w-32">Event Type</th><th class="p-3">Data Trace Payload</th></tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="view-ledger-panel" class="stage hidden">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <button onclick="nav('customers')" class="text-blue-400 text-xs font-bold mb-2 hover:text-white transition"><i class="fa-solid fa-arrow-left mr-1"></i> Return to CRM</button>
+                            <h2 id="ledger-title-header" class="text-3xl font-black text-white">Customer Ledger</h2>
+                            <p id="ledger-subtitle-contact" class="text-slate-400"></p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="wa-reminder-standard" class="px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-bold hover:bg-emerald-500 hover:text-white transition"><i class="fa-brands fa-whatsapp mr-1"></i> Standard Reminder</button>
+                            <button id="wa-reminder-overdue" class="px-4 py-2 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-lg text-xs font-bold hover:bg-rose-500 hover:text-white transition"><i class="fa-brands fa-whatsa
